@@ -1,0 +1,1436 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>walletswap – buy, sell, and swap gift cards</title>
+<meta name="theme-color" content="#12B76A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20470%20470%22%3E%3Crect%20x%3D%2230%22%20y%3D%2230%22%20width%3D%22280%22%20height%3D%22280%22%20rx%3D%2270%22%20fill%3D%22%2312141A%22/%3E%3Crect%20x%3D%22160%22%20y%3D%22160%22%20width%3D%22280%22%20height%3D%22280%22%20rx%3D%2270%22%20fill%3D%22%2312B76A%22/%3E%3C/svg%3E">
+<style>
+:root{
+  /* walletswap palette */
+  --brand:#12B76A;            /* logo green: fills, accents */
+  --brand-ink:#12141A;        /* logo ink */
+  --brand-text:#087A45;       /* green for text on light surfaces (AA) */
+  --brand-soft:#E3F6EC;
+  --bg:#F4F5F7;--surface:#FFFFFF;--surface2:#FAFAFA;--ink:#12141A;--ink2:#2E313A;--muted:#6F7581;
+  --line:#E7E8EC;--arc:#EFEFF0;--pos:var(--brand-text);--danger:#D6363C;--btn:#12141A;--btn-ink:#FFFFFF;--chip:#FFFFFF;
+  --scrim:rgba(18,20,26,.45);--stage:#E9EAEE;--mark-ink:#12141A;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --brand-text:#12B76A;--brand-soft:rgba(18,183,106,.16);
+    --bg:#0C0D11;--surface:#17181E;--surface2:#1E2027;--ink:#F4F5F7;--ink2:#D3D6DC;--muted:#9097A3;
+    --line:#2A2C34;--arc:#1C1E25;--danger:#FF6268;--btn:#12B76A;--btn-ink:#12141A;--chip:#17181E;
+    --scrim:rgba(0,0,0,.6);--stage:#050608;--mark-ink:#F4F5F7;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --brand-text:#12B76A;--brand-soft:rgba(18,183,106,.16);
+  --bg:#0C0D11;--surface:#17181E;--surface2:#1E2027;--ink:#F4F5F7;--ink2:#D3D6DC;--muted:#9097A3;
+  --line:#2A2C34;--arc:#1C1E25;--danger:#FF6268;--btn:#12B76A;--btn-ink:#12141A;--chip:#17181E;
+  --scrim:rgba(0,0,0,.6);--stage:#050608;--mark-ink:#F4F5F7;color-scheme:dark;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",system-ui,sans-serif;
+  font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+#root{height:100%}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+.i{flex:none;display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.muted{color:var(--muted)}
+.pos{color:var(--pos)}
+.neg{color:var(--ink)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 20px;border-radius:16px;
+  font-weight:650;font-size:16px;white-space:nowrap;transition:transform .12s,opacity .12s,background .15s}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--btn);color:var(--btn-ink)}
+.btn.ghost{background:var(--surface);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.btn.block{width:100%}
+.btn.sm{height:40px;border-radius:12px;font-size:14px;padding:0 14px}
+.btn[disabled]{opacity:.38;pointer-events:none}
+.link{color:var(--brand-text);font-weight:700;font-size:15px}
+
+/* ---------- app frame ---------- */
+.stage{height:100%;display:flex;justify-content:center}
+.phone{position:relative;width:100%;max-width:440px;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+@media (min-width:700px) and (min-height:640px){
+  .stage{background:var(--stage);align-items:center;padding:24px}
+  .phone{height:min(900px,100%);border-radius:34px;border:1px solid var(--line);box-shadow:0 30px 80px -30px rgba(0,0,0,.35)}
+}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:22px 20px 32px;scrollbar-width:thin}
+.screen.anim{animation:fadein .22s ease-out}
+@keyframes fadein{from{opacity:.0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--surface);
+  border-top:1px solid var(--line);padding:6px 4px 8px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);padding:4px 0}
+.tab.on{color:var(--ink)}
+.tab{position:relative}
+.tab.on::before{content:"";position:absolute;top:-7px;width:22px;height:3px;border-radius:0 0 3px 3px;background:var(--brand)}
+.fab{justify-self:center;width:58px;height:58px;border-radius:18px;background:var(--brand);color:var(--brand-ink);
+  display:grid;place-items:center;margin-top:-6px;box-shadow:0 8px 20px -8px rgba(18,183,106,.7)}
+
+/* ---------- headings ---------- */
+.top{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.top h1{font-size:30px;line-height:1.1;margin:0;font-weight:750;letter-spacing:-.02em;flex:1}
+.back{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 12px}
+.sec-h h2{font-size:21px;margin:0;font-weight:700;letter-spacing:-.01em}
+.sec-h .meta{color:var(--muted);font-size:15px}
+.group-label{font-size:13px;font-weight:650;color:var(--muted);margin:22px 4px 8px}
+.sub{color:var(--muted);font-size:15px;margin:-8px 0 20px}
+
+/* ---------- wallet ---------- */
+.w-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.hello{font-size:19px;color:var(--muted);margin:0}
+.lbl{display:flex;align-items:center;gap:6px;font-size:16px;color:var(--muted);margin:6px 0 0}
+.lbl button{color:var(--muted);padding:4px;border-radius:8px}
+.total{font-size:50px;font-weight:750;letter-spacing:-.03em;margin:4px 0 0;line-height:1.08}
+.avatar{width:46px;height:46px;border-radius:14px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;
+  font-weight:700;font-size:18px;flex:none}
+.avatar.lg{width:60px;height:60px;font-size:21px;border-radius:17px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 12px 14px 14px;min-width:0;text-align:left}
+.stat .i{color:var(--muted)}
+.stat{transition:border-color .15s}
+.stat:hover{border-color:var(--brand)}
+.stat .k{display:block;color:var(--muted);font-size:14px;margin-top:12px}
+.stat .v{display:block;font-size:22px;font-weight:700;color:var(--brand-text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.duo .btn{padding:0 10px}
+
+/* ---------- gift card art ---------- */
+.cards-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -20px;padding:2px 20px 6px;scrollbar-width:none}
+.cards-row::-webkit-scrollbar{display:none}
+.gcard{position:relative;flex:none;width:82%;max-width:330px;aspect-ratio:1.48;border-radius:22px;overflow:hidden;scroll-snap-align:start;
+  background:linear-gradient(140deg,var(--c1),var(--c2));color:var(--ci,#fff);padding:18px 20px;display:flex;flex-direction:column;
+  isolation:isolate;box-shadow:0 10px 24px -14px rgba(0,0,0,.55)}
+.gcard.full{width:100%;max-width:none}
+.gcard::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(120% 80% at 100% 0%,rgba(255,255,255,.22),transparent 55%),
+             repeating-linear-gradient(115deg,rgba(255,255,255,.045) 0 2px,transparent 2px 9px)}
+.gcard .mono{color:var(--mono,inherit);position:absolute;right:-6px;bottom:-30px;font-size:170px;font-weight:850;line-height:1;opacity:.13;z-index:-1;letter-spacing:-.06em}
+.gcard .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.gcard .brand{font-size:22px;font-weight:750;letter-spacing:-.01em;line-height:1.15}
+.gcard .nick{font-size:13px;opacity:.75;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.pill{font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.2);
+  backdrop-filter:blur(6px);white-space:nowrap}
+.gcard.light .pill{background:rgba(0,0,0,.08)}
+.gcard .bal{margin-top:auto}
+.gcard .bal small{display:block;font-size:13px;opacity:.75}
+.gcard .bal strong{font-size:30px;font-weight:750;letter-spacing:-.02em}
+.gcard .foot{display:flex;justify-content:space-between;font-size:12.5px;opacity:.75;margin-top:2px}
+.gcard.dim{filter:saturate(.25) brightness(.9)}
+
+/* ---------- lists ---------- */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:13px 14px;width:100%;text-align:left;min-height:62px}
+.row+.row{border-top:1px solid var(--line)}
+.ricon{width:36px;height:36px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);display:grid;place-items:center;flex:none;color:var(--ink2)}
+.rbody{flex:1;min-width:0}
+.rt{font-weight:650;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ramt{font-weight:650;font-size:15.5px;white-space:nowrap;text-align:right}
+.ramt small{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.chev{color:var(--muted)}
+.tile{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:16px;flex:none;
+  background:linear-gradient(140deg,var(--c1),var(--c2));color:var(--ci,#fff)}
+.off{display:inline-block;font-size:12px;font-weight:700;color:var(--brand-text);background:var(--brand-soft);
+  padding:2px 7px;border-radius:7px;margin-top:3px}
+
+/* ---------- chips / search / segmented ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:2px 20px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:36px;padding:0 15px;border-radius:99px;background:var(--chip);border:1px solid var(--line);font-size:14px;font-weight:600}
+.chip.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 12px;height:46px;margin-bottom:12px}
+.search input{border:0;outline:0;background:transparent;flex:1;min-width:0;font-size:16px}
+.search .i{color:var(--muted)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:13px;padding:3px;gap:3px}
+.seg>*{display:grid;place-items:center;height:38px;border-radius:10px;font-weight:650;font-size:14.5px;color:var(--muted)}
+.seg>.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:14px 2px 10px;font-size:14px;color:var(--muted)}
+.toolbar select{border:0;background:transparent;font-weight:650;color:var(--ink);font-size:14px;padding:4px 2px}
+
+/* ---------- forms ---------- */
+.field{display:block;margin-bottom:14px}
+.field>span{display:block;font-size:14px;color:var(--muted);margin:0 2px 6px}
+.input{width:100%;height:50px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-size:16px;outline:none}
+.input:focus{border-color:var(--ink2)}
+.input.bad{border-color:var(--danger)}
+.err{color:var(--danger);font-size:13px;margin:6px 2px 0}
+.hint{color:var(--muted);font-size:13px;margin:6px 2px 0}
+.money-in{position:relative}
+.money-in::before{content:"$";position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.money-in .input{padding-left:28px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pw{position:relative}
+.pw .input{padding-right:48px}
+.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:8px;color:var(--muted);border-radius:10px}
+.brand-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border-radius:14px;background:var(--surface);
+  border:1.5px solid var(--line);font-size:12.5px;font-weight:600}
+.bt .tile{width:34px;height:34px;font-size:14px;border-radius:10px}
+.bt.on{border-color:var(--ink)}
+.bt span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- card detail ---------- */
+.progress{height:6px;border-radius:9px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden;margin:16px 2px 6px}
+.progress i{display:block;height:100%;background:var(--brand);border-radius:9px}
+.pmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:0 2px}
+.secret{display:flex;align-items:center;gap:6px;padding:12px 14px}
+.secret+.secret{border-top:1px solid var(--line)}
+.secret .s-k{font-size:13px;color:var(--muted)}
+.secret .s-v{font-weight:650;font-size:16px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.icon-btn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:var(--ink2);border:1px solid var(--line);background:var(--surface2)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.notice{display:flex;gap:10px;align-items:flex-start;font-size:14px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);margin-top:14px}
+.notice .i{color:var(--muted);margin-top:1px}
+
+/* ---------- profile ---------- */
+.p-head{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
+.p-head .rbody .rt{font-size:18px}
+.savings{background:var(--brand-ink);color:#fff;position:relative;overflow:hidden;border-radius:20px;padding:18px 18px 16px;margin-top:12px}
+:root[data-theme="dark"] .savings{background:#2A2A2F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .savings{background:#2A2A2F}}
+.savings small{font-size:14px;opacity:.75}
+.savings strong{display:block;color:var(--brand);font-size:34px;font-weight:750;margin:4px 0 6px;letter-spacing:-.02em}
+.savings p{margin:0;font-size:13.5px;opacity:.7}
+.kv{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:left;min-height:56px}
+.kv+.kv{border-top:1px solid var(--line)}
+.kv .k{flex:1;font-weight:600;font-size:15.5px}
+.kv .v{color:var(--muted);font-size:14.5px;max-width:52%;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.switch{position:relative;width:50px;height:30px;border-radius:99px;background:color-mix(in srgb,var(--ink) 18%,transparent);flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.switch.on{background:var(--brand)}
+.switch.on::after{transform:translateX(20px)}
+.pref{display:flex;gap:12px;align-items:center;padding:13px 14px}
+.pref+.pref{border-top:1px solid var(--line)}
+.pref p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.foot-note{text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px}
+.p-foot{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:28px;color:var(--muted);font-size:13px}
+.p-foot p{margin:0}
+.brandbar{display:flex;justify-content:space-between;align-items:center;margin:-4px 0 18px}
+
+/* ---------- empty ---------- */
+.empty{text-align:center;padding:42px 18px;color:var(--muted)}
+.empty .i{margin:0 auto 12px;color:var(--muted)}
+.empty h3{color:var(--ink);margin:0 0 4px;font-size:17px}
+.empty p{margin:0 0 16px;font-size:14.5px}
+
+/* ---------- summary tiles ---------- */
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.mini div{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.mini small{display:block;color:var(--muted);font-size:13px}
+.mini b{font-size:19px}
+
+/* ---------- sheet ---------- */
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end}
+.scrim.anim{animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-height:92%;overflow-y:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:10px 20px 26px}
+.scrim.anim .sheet{animation:up .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40%);opacity:.4}}
+.grab{width:38px;height:5px;border-radius:9px;background:color-mix(in srgb,var(--ink) 18%,transparent);margin:0 auto 12px}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sheet-h h2{margin:0;font-size:22px;font-weight:720;letter-spacing:-.01em}
+.sheet p.lead{color:var(--muted);margin:-6px 0 16px;font-size:14.5px}
+.sum{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 14px;margin:12px 0 16px}
+.sum div{display:flex;justify-content:space-between;padding:10px 0;font-size:15px}
+.sum div+div{border-top:1px solid var(--line)}
+.sum b{font-weight:700}
+
+/* ---------- toasts ---------- */
+#toasts{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(380px,calc(100% - 32px))}
+.toast{background:var(--brand-ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:14.5px;font-weight:600;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);
+  animation:toastin .25s ease-out;display:flex;gap:8px;align-items:center;max-width:100%}
+.toast::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--brand);flex:none}
+:root[data-theme="dark"] .toast{background:#F4F5F7;color:#12141A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:#F4F5F7;color:#12141A}}
+.toast.out{opacity:0;transform:translateY(6px);transition:.25s}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}}
+
+/* ---------- auth ---------- */
+.auth{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:24px 20px 40px}
+.auth-in{width:100%;max-width:400px}
+.auth-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.auth h1{font-size:32px;font-weight:760;letter-spacing:-.025em;margin:0 0 6px;line-height:1.1}
+.auth .lead{color:var(--muted);margin:0 0 26px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:18px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.form-err{background:color-mix(in srgb,var(--danger) 10%,transparent);color:var(--danger);border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:14px}
+.alt{text-align:center;margin-top:22px;color:var(--muted);font-size:15px}
+.demo-note{font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+
+/* ---------- landing ---------- */
+.home{min-height:100%;overflow-x:hidden}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.nav{display:flex;align-items:center;justify-content:space-between;height:76px;gap:12px}
+.logo{display:inline-flex;align-items:center;gap:10px;color:var(--ink)}
+.mark{display:block;flex:none}
+.wordmark{font-family:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;font-weight:700;font-size:24px;letter-spacing:-.015em;line-height:1}
+.logo.sm{gap:8px}.logo.sm .wordmark{font-size:19px}
+.logo.xs{gap:7px}.logo.xs .wordmark{font-size:16px}
+.nav-r{display:flex;gap:8px;align-items:center}
+.nav-r .txt{font-weight:600;font-size:15px;padding:10px 12px}
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding-top:40px;padding-bottom:70px}
+.hero h1{font-size:clamp(42px,6.4vw,76px);line-height:.98;letter-spacing:-.045em;font-weight:820;margin:0 0 22px;max-width:11ch}
+.hero p{font-size:19px;color:var(--ink2);max-width:34ch;margin:0 0 30px;line-height:1.5}
+.hero .cta{display:flex;gap:10px;flex-wrap:wrap}
+.fan{position:relative;height:420px}
+.arcs{position:absolute;left:50%;top:50%;width:440px;height:440px;transform:translate(-50%,-50%);color:var(--arc);z-index:0}
+.fan .gcard{z-index:1}
+.fan-tag{z-index:2}
+.fan .gcard{position:absolute;width:300px;left:50%;top:50%;transform-origin:50% 120%;box-shadow:0 30px 60px -28px rgba(0,0,0,.6)}
+.fan .gcard:nth-of-type(1){transform:translate(-50%,-50%) rotate(-16deg) translate(-40px,10px)}
+.fan .gcard:nth-of-type(2){transform:translate(-50%,-50%) rotate(-3deg) translate(-6px,-4px)}
+.fan .gcard:nth-of-type(3){transform:translate(-50%,-50%) rotate(11deg) translate(44px,4px)}
+.fan-tag{position:absolute;right:4%;bottom:6%;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px;
+  box-shadow:0 18px 40px -20px rgba(0,0,0,.4)}
+.fan-tag small{display:block;color:var(--muted);font-size:13px}
+.fan-tag b{font-size:22px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);padding-top:48px;padding-bottom:64px}
+.steps h2{grid-column:1/-1;font-size:32px;letter-spacing:-.025em;margin:0 0 30px;font-weight:760}
+.step{padding:0 28px 0 0}
+.step+.step{padding-left:28px;border-left:1px solid var(--line)}
+.step .n{font-size:56px;font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--brand)}
+.step h3{font-size:21px;margin:10px 0 8px;letter-spacing:-.01em}
+.step p{color:var(--ink2);margin:0;line-height:1.55;max-width:32ch}
+.band{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.band .wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:56px;padding-bottom:56px;align-items:center}
+.band h2{font-size:32px;letter-spacing:-.025em;margin:0 0 12px;font-weight:760;max-width:16ch;line-height:1.1}
+.band p{color:var(--ink2);margin:0 0 22px;line-height:1.55;max-width:42ch}
+.band .list{max-width:440px;justify-self:end;width:100%}
+.closing{text-align:center;padding-top:72px;padding-bottom:72px}
+.closing h2{font-size:clamp(30px,4vw,44px);letter-spacing:-.03em;margin:0 0 22px;font-weight:780}
+.footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:14px}
+.footer p{margin:8px 0 0}
+.footer .wrap{align-items:flex-end}
+.footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (max-width:820px){
+  .hero{grid-template-columns:1fr;padding-top:16px;gap:10px}
+  .fan{height:320px}
+  .fan .gcard{width:224px}
+  .fan .gcard:nth-of-type(1){transform:translate(-50%,-50%) rotate(-14deg) translate(-26px,10px)}
+  .fan .gcard:nth-of-type(3){transform:translate(-50%,-50%) rotate(10deg) translate(28px,4px)}
+  .fan-tag{right:0;bottom:2%}
+  .steps{grid-template-columns:1fr;gap:26px}
+  .step,.step+.step{padding:0;border:0}
+  .band .wrap{grid-template-columns:1fr}
+  .band .list{justify-self:stretch}
+  .nav-r .txt.hide-sm{display:none}
+}
+
+/* walletswap brand stripe (from the poster) */
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:6px;background:var(--brand);z-index:50}
+.home{padding-top:6px}
+.auth{padding-top:30px}
+.phone{border-top:6px solid var(--brand)}
+@media (min-width:700px) and (min-height:640px){ body.in-app::before{display:none} }
+.btn.primary:hover{box-shadow:0 0 0 3px var(--brand-soft)}
+.sec-h .meta:hover{color:var(--brand-text)}
+.hero h1{max-width:12ch}
+@media (max-width:820px){.arcs{width:330px;height:330px}.step .n{font-size:44px}}
+.nav-r .txt{white-space:nowrap}
+@media (max-width:420px){.nav .wordmark{font-size:20px}.nav .mark{width:28px;height:28px}.nav-r{gap:4px}.nav-r .txt{padding:10px 8px}}
+</style></head><body><div id="root"></div><div id="toasts" aria-live="polite"></div><script>
+"use strict";
+/* ================= utilities ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const FMT = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const money = n => FMT.format(r2(n));
+const uid = p => p + "_" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-5);
+const MIN = 60000, HOUR = 3600000, DAY = 86400000;
+const sum = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const rand = (a, b) => a + Math.random() * (b - a);
+const digits = s => String(s || "").replace(/\D/g, "");
+const groupNum = s => digits(s).slice(0, 19).replace(/(.{4})(?=.)/g, "$1 ");
+const last4 = s => digits(s).slice(-4);
+const initials = name => (String(name || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
+const firstName = name => String(name || "").trim().split(/\s+/)[0] || "there";
+const parseMoney = v => { const n = parseFloat(String(v ?? "").replace(/[^0-9.]/g, "")); return isFinite(n) ? r2(n) : NaN; };
+function ago(t) {
+  const d = Date.now() - t;
+  if (d < 45000) return "just now";
+  if (d < HOUR) return Math.max(1, Math.round(d / MIN)) + "m ago";
+  if (d < DAY) return Math.round(d / HOUR) + "h ago";
+  if (d < 30 * DAY) return Math.round(d / DAY) + "d ago";
+  return Math.round(d / (30 * DAY)) + "mo ago";
+}
+function dayGroup(t) {
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  if (t >= start.getTime()) return "Today";
+  if (t >= start.getTime() - DAY) return "Yesterday";
+  if (t >= start.getTime() - 6 * DAY) return "This week";
+  if (t >= start.getTime() - 30 * DAY) return "This month";
+  return "Earlier";
+}
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || "").trim());
+
+/* ================= icons ================= */
+const P = {
+  wallet: '<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  store: '<path d="M3 9l1.6-5h14.8L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  pulse: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  user: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.8 18.6a6 6 0 0 1 10.4 0"/>',
+  person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+  tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  trend: '<path d="M22 17l-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',
+  down: '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+  cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.7 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+  pluscircle: '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>',
+  left: '<path d="M15 18l-6-6 6-6"/>',
+  right: '<path d="M9 18l6-6-6-6"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  bank: '<path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  pencil: '<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  home: '<path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  dollar: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>'
+};
+const icon = (n, s = 20, extra = "") => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${P[n] || ""}</svg>`;
+
+/* ================= brands ================= */
+// Plain-text store names with colour treatments only — no logos.
+const BRANDS = [
+  { id: "amazon", name: "Amazon", c1: "#2E3846", c2: "#10151C" },
+  { id: "apple", name: "Apple", c1: "#F1F1F4", c2: "#C3C6CD", ci: "#1C1C1E", light: true },
+  { id: "bestbuy", name: "Best Buy", c1: "#1748A6", c2: "#0A2763" },
+  { id: "nike", name: "Nike", c1: "#3A3A3D", c2: "#121213" },
+  { id: "sephora", name: "Sephora", c1: "#3B2540", c2: "#140B16" },
+  { id: "starbucks", name: "Starbucks", c1: "#11805A", c2: "#04402B" },
+  { id: "target", name: "Target", c1: "#D3303C", c2: "#87101B" },
+  { id: "walmart", name: "Walmart", c1: "#1A6CE0", c2: "#0B3C8C" },
+  { id: "uber", name: "Uber", c1: "#26303A", c2: "#05070A" },
+  { id: "airbnb", name: "Airbnb", c1: "#F2626B", c2: "#B92F4C" },
+  { id: "homedepot", name: "Home Depot", c1: "#F2772A", c2: "#B4470D" },
+  { id: "steam", name: "Steam", c1: "#2D4A68", c2: "#14212F" }
+];
+const OTHER = { id: "other", name: "Other", c1: "#2A2D36", c2: "#12141A", mono: "#12B76A" };
+const brandOf = c => BRANDS.find(b => b.id === c.brand) || { ...OTHER, name: c.brandName || "Gift card" };
+const brandName = c => (c.brand === "other" ? (c.brandName || "Gift card") : (brandOf(c).name));
+const cvars = b => `--c1:${b.c1};--c2:${b.c2};${b.ci ? "--ci:" + b.ci + ";" : ""}${b.mono ? "--mono:" + b.mono + ";" : ""}`;
+/* walletswap brand mark: two overlapping rounded squares (ink + green) */
+const MARK = (s = 30) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 470 470" aria-hidden="true"><rect x="30" y="30" width="280" height="280" rx="70" fill="var(--mark-ink)"/><rect x="160" y="160" width="280" height="280" rx="70" fill="#12B76A"/></svg>`;
+const LOGO = (s = 30, cls = "") => `${MARK(s)}<span class="wordmark${cls}">walletswap</span>`;
+const TAGLINE = "Buy, sell, and swap any gift card or voucher.";
+const tile = (b, label) => `<span class="tile" style="${cvars(b)}">${esc(initials(label || b.name).slice(0, 1))}</span>`;
+
+/* ================= persistence ================= */
+const KEY = "walletswap.state.v1";
+let S = null;                       // { v, accounts:{email:account}, session, theme, updatedAt }
+const Store = {
+  local: false, ref: null, writing: Promise.resolve(), timer: null, cloud: false,
+  async init() {
+    try { localStorage.setItem("__g", "1"); localStorage.removeItem("__g"); this.local = true; const raw = localStorage.getItem(KEY); if (raw) S = JSON.parse(raw); } catch (e) { S = null; }
+    if (!S || typeof S !== "object" || !S.accounts) S = { v: 2, accounts: {}, session: null, theme: "system", updatedAt: 0 };
+    if (!S.accounts[DEMO.email]) { S.accounts[DEMO.email] = await makeDemoAccount(); }
+    this.connect();
+  },
+  async connect() {
+    try {
+      if (!window.claude || typeof window.claude.use !== "function") return;
+      const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+      this.ref = db.doc("data/users/" + id + "/walletswap");
+      const snap = await this.ref.get();
+      let remote = null;
+      if (snap.exists) { try { remote = JSON.parse(snap.data().json); } catch (e) { remote = null; } }
+      this.cloud = true;
+      if (remote && remote.accounts && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
+        S = remote;
+        if (!S.accounts[DEMO.email]) S.accounts[DEMO.email] = await makeDemoAccount();
+        this.writeLocal(); applyTheme(); render();
+      } else if (!remote || (S.updatedAt || 0) > (remote.updatedAt || 0)) {
+        this.pushCloud();
+      }
+    } catch (e) { console.warn("Cloud sync unavailable:", e && e.message); }
+  },
+  writeLocal() { if (!this.local) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } },
+  pushCloud() {
+    if (!this.ref) return;
+    const body = { json: JSON.stringify(S), updatedAt: S.updatedAt || 0 };
+    this.writing = this.writing.then(() => this.ref.set(body)).catch(e => console.warn("Sync failed:", e && e.code));
+  },
+  save() {
+    S.updatedAt = Date.now();
+    this.writeLocal();
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.pushCloud(), 700);
+  }
+};
+
+/* ================= auth ================= */
+async function hashPw(pw, salt) {
+  try {
+    if (window.crypto && crypto.subtle) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + "::" + pw));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+  } catch (e) { }
+  let h = 5381; for (const ch of salt + "::" + pw) h = ((h << 5) + h + ch.charCodeAt(0)) | 0;
+  return "x" + (h >>> 0).toString(16);
+}
+const DEMO = { email: "demo@walletswap.app", password: "swap1234", name: "Alex Demo" };
+const acct = () => (S && S.session && S.accounts[S.session]) || null;
+
+async function makeAccount(name, email, password, demo) {
+  const salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return {
+    id: uid("u"), name: name.trim(), email: email.trim().toLowerCase(), salt, hash: await hashPw(password, salt),
+    createdAt: Date.now(), demo: !!demo, data: demo ? seedDemoData() : freshData()
+  };
+}
+async function makeDemoAccount() { return makeAccount(DEMO.name, DEMO.email, DEMO.password, true); }
+
+function freshData() {
+  return {
+    cards: [], activity: [], market: seedMarket(14), saved: 0,
+    payment: null, payout: { method: null, balance: 0 },
+    prefs: { saleAlerts: true, share: true, hide: false }
+  };
+}
+
+/* ================= seed content ================= */
+const SELLERS = ["Maya R.", "Jordan K.", "Noor H.", "Chris B.", "Priya S.", "Diego M.", "Lena W.", "Sam T.", "Ife O.", "Hana Y.", "Marco P.", "Zoe L."];
+function genNumber(len = 16) { let s = String(Math.floor(rand(1, 9))); while (s.length < len) s += Math.floor(Math.random() * 10); return s; }
+function genPin() { return String(Math.floor(rand(1000, 9999))); }
+function seedMarket(n) {
+  const values = [25, 30, 40, 50, 60, 75, 100, 120, 150, 200];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const b = BRANDS[i % BRANDS.length];
+    const value = pick(values);
+    const pct = Math.round(rand(5, 19));
+    out.push({
+      id: uid("l"), brand: b.id, value, price: r2(value * (1 - pct / 100)), seller: pick(SELLERS),
+      rating: r2(rand(4.5, 5)).toFixed(1), type: Math.random() < .78 ? "Digital" : "Physical", listedAt: Date.now() - rand(5 * MIN, 3 * DAY)
+    });
+  }
+  return out;
+}
+function seedDemoData() {
+  const now = Date.now();
+  const d = freshData();
+  const C = (brand, original, balance, extra) => Object.assign({
+    id: uid("c"), brand, brandName: "", number: genNumber(), pin: genPin(), original, balance, type: "Digital",
+    nickname: "", source: "added", paid: null, addedAt: now, status: "active", listing: null
+  }, extra);
+  const cards = [
+    C("amazon", 100, 100, { nickname: "Birthday gift from Kim", addedAt: now - 19 * MIN }),
+    C("amazon", 50, 50, { source: "bought", paid: 45, addedAt: now - 34 * DAY }),
+    C("apple", 200, 145, { addedAt: now - 40 * DAY, nickname: "Work bonus" }),
+    C("starbucks", 25, 8.75, { addedAt: now - 38 * DAY, type: "Physical" }),
+    C("starbucks", 25, 25, { source: "bought", paid: 22, addedAt: now - 33 * DAY }),
+    C("target", 75, 75, { addedAt: now - 62 * DAY, type: "Physical" }),
+    C("amazon", 100, 62.5, { source: "bought", paid: 85, addedAt: now - 19 * MIN }),
+    C("sephora", 50, 40, { addedAt: now - 9 * DAY }),
+    C("nike", 60, 60, { addedAt: now - 3 * DAY, nickname: "Holiday gift" }),
+    C("amazon", 25, 25, { source: "bought", paid: 22.5, addedAt: now - 31 * DAY })
+  ];
+  const A = (t, kind, card, amount, sub) => ({ id: uid("a"), t, kind, brand: card.brand, brandName: card.brandName, cardId: card.id, amount, sub });
+  const act = [
+    A(now - 40 * DAY, "added", cards[2], 200, "Added manually"),
+    A(now - 38 * DAY, "added", cards[3], 25, "Added manually"),
+    A(now - 34 * DAY, "purchased", cards[1], -45, "walletswap Marketplace"),
+    A(now - 33 * DAY, "purchased", cards[4], -22, "walletswap Marketplace"),
+    A(now - 31 * DAY, "purchased", cards[9], -22.5, "walletswap Marketplace"),
+    A(now - 30 * DAY, "redeemed", cards[2], -55, "Apple Store"),
+    A(now - 29 * DAY, "redeemed", cards[3], -16.25, "Starbucks Store"),
+    A(now - 62 * DAY, "added", cards[5], 75, "Added manually"),
+    A(now - 9 * DAY, "added", cards[7], 50, "Added manually"),
+    A(now - 6 * DAY, "redeemed", cards[7], -10, "Sephora online"),
+    A(now - 3 * DAY, "added", cards[8], 60, "Added manually"),
+    A(now - 19 * MIN, "added", cards[0], 100, "Added manually"),
+    A(now - 19 * MIN + 2000, "purchased", cards[6], -85, "walletswap Marketplace"),
+    A(now - 14 * MIN, "redeemed", cards[6], -10, "Amazon online"),
+    A(now - 9 * MIN, "redeemed", cards[6], -27.5, "Amazon online")
+  ].sort((a, b) => b.t - a.t);
+  d.cards = cards; d.activity = act;
+  d.saved = r2(sum(cards.filter(c => c.source === "bought"), c => c.original - c.paid)); // 25.50
+  return d;
+}
+/* ================= ui state & router ================= */
+const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "" });
+const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), f: {}, errs: {}, reveal: {}, authErr: "", showPw: false, lastPath: null, after: null };
+
+function parseRoute() {
+  const h = (location.hash || "#/").slice(1) || "/";
+  const [p, q] = h.split("?");
+  return { path: p || "/", parts: (p || "/").split("/").filter(Boolean), q: new URLSearchParams(q || "") };
+}
+function go(path) { if (location.hash === "#" + path) render(); else location.hash = path; }
+
+function render() {
+  const r = parseRoute();
+  const a = acct();
+  const root = $("#root");
+  const ae = document.activeElement;
+  const fid = ae && ae.id;
+  let sel = null; try { if (ae && ae.selectionStart != null) sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { }
+  const scr = $(".screen"), sh = $(".sheet");
+  const st = scr ? scr.scrollTop : 0, sst = sh ? sh.scrollTop : 0;
+  const keepX = {}; document.querySelectorAll("[data-keep-x]").forEach(el => keepX[el.dataset.keepX] = el.scrollLeft);
+  const same = r.path === ui.lastPath;
+
+  let html;
+  if (r.parts[0] === "app") {
+    if (!a) { ui.after = (location.hash || "").slice(1); location.replace("#/login"); return; }
+    html = appShell(a, r, same);
+  } else if (r.parts[0] === "login" || r.parts[0] === "signup") {
+    if (a) { location.replace("#/app/wallet"); return; }
+    html = vAuth(r.parts[0]);
+  } else {
+    html = vHome(a);
+  }
+  root.innerHTML = html;
+  document.body.classList.toggle("in-app", r.parts[0] === "app");
+  ui.lastPath = r.path; ui.sheetNew = false;
+
+  if (same) {
+    const s2 = $(".screen"); if (s2) s2.scrollTop = st;
+    const sh2 = $(".sheet"); if (sh2 && sh) sh2.scrollTop = sst;
+    document.querySelectorAll("[data-keep-x]").forEach(el => { if (keepX[el.dataset.keepX] != null) el.scrollLeft = keepX[el.dataset.keepX]; });
+  }
+  if (fid) {
+    const el = document.getElementById(fid);
+    if (el) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) { } }
+  } else if (ui.focusSheet) {
+    const first = $(".sheet input, .sheet button.btn"); if (first) first.focus({ preventScroll: true });
+  }
+  ui.focusSheet = false;
+  const titles = { wallet: "Wallet", cards: "All cards", card: "Card", add: "Add a card", market: "Marketplace", activity: "Activity", profile: "Profile" };
+  document.title = r.parts[0] === "app" ? `${titles[r.parts[1] || "wallet"] || "Wallet"} – walletswap` : r.parts[0] === "login" ? "Log in – walletswap" : r.parts[0] === "signup" ? "Create account – walletswap" : "walletswap – buy, sell, and swap gift cards";
+}
+
+function appShell(a, r, same) {
+  const s = r.parts[1] || "wallet";
+  let body, tab = s;
+  switch (s) {
+    case "wallet": body = vWallet(a); break;
+    case "cards": body = vCards(a); tab = "wallet"; break;
+    case "card": body = vCard(a, r.parts[2]); tab = "wallet"; break;
+    case "add": body = vAdd(a); tab = "add"; break;
+    case "market": body = vMarket(a, r); break;
+    case "activity": body = vActivity(a); break;
+    case "profile": body = vProfile(a); break;
+    default: body = vWallet(a); tab = "wallet";
+  }
+  return `<div class="stage"><div class="phone">
+    <main class="screen${same ? "" : " anim"}" id="screen">${body}</main>
+    ${tabbar(tab)}
+    ${ui.sheet ? sheetHtml(a) : ""}
+  </div></div>`;
+}
+
+function tabbar(t) {
+  const T = (id, label, ic) => `<a class="tab${t === id ? " on" : ""}" href="#/app/${id}" ${t === id ? 'aria-current="page"' : ""}>${icon(ic, 25)}<span>${label}</span></a>`;
+  return `<nav class="tabbar" aria-label="Main">
+    ${T("wallet", "Wallet", "wallet")}${T("market", "Market", "store")}
+    <a class="fab" href="#/app/add" aria-label="Add a gift card">${icon("plus", 26, 'stroke-width="2.2"')}</a>
+    ${T("activity", "Activity", "pulse")}${T("profile", "Profile", "user")}
+  </nav>`;
+}
+
+/* ================= shared pieces ================= */
+function sortCards(cards) {
+  const rank = c => c.status === "listed" ? 1 : c.balance > 0 ? 0 : 2;
+  return cards.slice().sort((x, y) => rank(x) - rank(y) || y.addedAt - x.addedAt);
+}
+const cardState = c => c.status === "listed" ? "Listed" : c.balance <= 0 ? "Used up" : "Active";
+
+function gArt(o) {
+  const b = o.b, used = o.pill === "Used up";
+  const tag = o.href ? "a" : "div";
+  return `<${tag} class="gcard${o.full ? " full" : ""}${b.light ? " light" : ""}${used ? " dim" : ""}"${o.href ? ` href="${o.href}" aria-label="${esc(o.name)} card, ${o.hide ? "balance hidden" : "balance " + money(o.balance)}"` : ""} style="${cvars(b)}">
+    <span class="mono" aria-hidden="true">${esc(initials(o.name).slice(0, 1))}</span>
+    <div class="row1"><div style="min-width:0"><div class="brand">${esc(o.name)}</div>${o.nick ? `<div class="nick">${esc(o.nick)}</div>` : ""}</div><span class="pill">${o.pill}</span></div>
+    <div class="bal"><small>Balance</small><strong class="num">${o.hide ? "$•••.••" : money(o.balance)}</strong></div>
+    <div class="foot"><span>•••• ${esc(o.l4)}</span><span>${esc(o.type)}</span></div>
+  </${tag}>`;
+}
+const gcard = (c, opts = {}) => gArt({ b: brandOf(c), name: brandName(c), nick: c.nickname, pill: cardState(c), balance: c.balance, l4: last4(c.number), type: c.type, hide: opts.hide, full: opts.full, href: opts.full ? "" : `#/app/card/${c.id}` });
+
+const KIND = {
+  added: { icon: "pluscircle", label: "Added card" }, redeemed: { icon: "down", label: "Redeemed" },
+  purchased: { icon: "cart", label: "Purchased" }, sold: { icon: "dollar", label: "Sold" },
+  listed: { icon: "tag", label: "Listed" }, unlisted: { icon: "undo", label: "Unlisted" },
+  removed: { icon: "trash", label: "Removed" }, edited: { icon: "pencil", label: "Balance updated" },
+  withdraw: { icon: "bank", label: "Withdrawal" }, reprice: { icon: "tag", label: "Price changed" }
+};
+const actBrand = x => x.brand === "other" ? (x.brandName || "Gift card") : ((BRANDS.find(b => b.id === x.brand) || {}).name || "Gift card");
+function actRow(x, a) {
+  const k = KIND[x.kind] || KIND.added;
+  const title = x.kind === "withdraw" ? k.label : `${k.label} · ${actBrand(x)}`;
+  const exists = x.cardId && a.data.cards.some(c => c.id === x.cardId);
+  const amt = x.amount > 0 ? `<span class="pos">+${money(x.amount)}</span>` : x.amount < 0 ? `-${money(-x.amount)}` : "";
+  const inner = `<span class="ricon">${icon(k.icon, 18)}</span>
+    <span class="rbody"><span class="rt" style="display:block">${esc(title)}</span><span class="rs" style="display:block">${esc(x.sub || "")} · ${ago(x.t)}</span></span>
+    <span class="ramt num">${amt}</span>`;
+  return exists ? `<a class="row" href="#/app/card/${x.cardId}">${inner}</a>` : `<div class="row">${inner}</div>`;
+}
+const empty = (ic, h, p, cta) => `<div class="empty">${icon(ic, 38)}<h3>${h}</h3><p>${p}</p>${cta || ""}</div>`;
+const backBtn = (to, label = "Back") => `<a class="back" href="#${to}" aria-label="${label}">${icon("left", 20)}</a>`;
+const fieldErr = k => ui.errs[k] ? `<p class="err" id="err-${k}">${esc(ui.errs[k])}</p>` : "";
+const bad = k => ui.errs[k] ? " bad" : "";
+const sw = (on, act, k, label) => `<button class="switch${on ? " on" : ""}" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-act="${act}" data-k="${k}"></button>`;
+
+/* ================= wallet ================= */
+function vWallet(a) {
+  const d = a.data, hide = d.prefs.hide;
+  const cards = sortCards(d.cards);
+  const total = sum(d.cards, c => c.balance);
+  const listed = d.cards.filter(c => c.status === "listed").length;
+  const recent = d.activity.slice(0, 4);
+  return `
+  <div class="brandbar"><a class="logo sm" href="#/" aria-label="walletswap home page">${LOGO(26)}</a>
+    <a class="avatar" href="#/app/profile" aria-label="Open profile">${esc(initials(a.name))}</a></div>
+  <header class="w-head">
+    <div style="min-width:0">
+      <p class="hello">Hello, ${esc(firstName(a.name))}</p>
+      <p class="lbl">Total gift-card balance <button data-act="toggle-hide" aria-label="${hide ? "Show balances" : "Hide balances"}">${icon(hide ? "eyeoff" : "eye", 18)}</button></p>
+      <p class="total num">${hide ? "$•••.••" : money(total)}</p>
+    </div>
+  </header>
+  <div class="stats">
+    <a class="stat" href="#/app/cards">${icon("wallet", 20)}<span class="k">Cards</span><span class="v num">${d.cards.length}</span></a>
+    <a class="stat" href="#/app/market?tab=mine">${icon("tag", 20)}<span class="k">Listed</span><span class="v num">${listed}</span></a>
+    <a class="stat" href="#/app/profile">${icon("trend", 20)}<span class="k">Saved</span><span class="v num pos">${money(d.saved)}</span></a>
+  </div>
+  <div class="duo">
+    <a class="btn primary" href="#/app/add">${icon("plus", 20)}Add card</a>
+    <a class="btn ghost" href="#/app/market">${icon("store", 20)}Marketplace</a>
+  </div>
+  <div class="sec-h"><h2>My cards</h2><a class="meta" href="#/app/cards">${d.cards.length} total</a></div>
+  ${cards.length ? `<div class="cards-row" data-keep-x="wallet">${cards.map(c => gcard(c, { hide })).join("")}</div>`
+      : `<div class="list">${empty("card", "Your wallet is empty", "Add a gift card you already have, or buy one below face value on the marketplace.", `<a class="btn primary sm" href="#/app/add">${icon("plus", 18)}Add your first card</a>`)}</div>`}
+  <div class="sec-h"><h2>Recent activity</h2>${d.activity.length ? `<a class="link" href="#/app/activity">See all</a>` : ""}</div>
+  ${recent.length ? `<div class="list">${recent.map(x => actRow(x, a)).join("")}</div>`
+      : `<div class="list">${empty("pulse", "No activity yet", "Adding, spending, buying and selling cards will show up here.")}</div>`}`;
+}
+
+/* ================= all cards ================= */
+function vCards(a) {
+  const d = a.data;
+  const groups = {
+    active: d.cards.filter(c => c.status !== "listed" && c.balance > 0),
+    listed: d.cards.filter(c => c.status === "listed"),
+    used: d.cards.filter(c => c.status !== "listed" && c.balance <= 0),
+    all: d.cards
+  };
+  const labels = { active: "Active", listed: "Listed", used: "Used up", all: "All" };
+  const list = sortCards(groups[ui.cf] || groups.all);
+  return `
+  <div class="top">${backBtn("/app/wallet", "Back to wallet")}<h1>All cards</h1></div>
+  <div class="chips" role="tablist">${Object.keys(labels).map(k => `<button class="chip${ui.cf === k ? " on" : ""}" role="tab" aria-selected="${ui.cf === k}" data-act="cards-filter" data-v="${k}">${labels[k]} ${groups[k].length}</button>`).join("")}</div>
+  <div style="display:grid;gap:12px;margin-top:16px">
+    ${list.length ? list.map(c => gcard(c, { hide: d.prefs.hide }).replace('class="gcard', 'class="gcard full')).join("")
+      : `<div class="list">${empty("card", `No ${labels[ui.cf].toLowerCase()} cards`, ui.cf === "listed" ? "Cards you put up for sale appear here." : "Nothing here right now.", `<a class="btn primary sm" href="#/app/add">${icon("plus", 18)}Add a card</a>`)}</div>`}
+  </div>`;
+}
+
+/* ================= card detail ================= */
+function vCard(a, id) {
+  const d = a.data;
+  const c = d.cards.find(x => x.id === id);
+  if (!c) {
+    const sold = d.activity.find(x => x.cardId === id && x.kind === "sold");
+    return `<div class="top">${backBtn("/app/wallet", "Back to wallet")}<h1>Card</h1></div>
+      <div class="list">${sold ? empty("dollar", "This card was sold", `${money(sold.amount)} was added to your payout balance.`, `<a class="btn primary sm" href="#/app/profile">View payout balance</a>`)
+        : empty("card", "This card isn't in your wallet", "It may have been removed.", `<a class="btn primary sm" href="#/app/wallet">Go to wallet</a>`)}</div>`;
+  }
+  const name = brandName(c);
+  const pct = c.original > 0 ? Math.max(0, Math.min(100, c.balance / c.original * 100)) : 0;
+  const revN = ui.reveal["n" + c.id], revP = ui.reveal["p" + c.id];
+  const listed = c.status === "listed";
+  const hist = d.activity.filter(x => x.cardId === c.id);
+  const origin = c.source === "bought" ? `Bought for ${money(c.paid)}` : `Added ${ago(c.addedAt)}`;
+  return `
+  <div class="top">${backBtn("/app/wallet", "Back to wallet")}<h1>${esc(name)}</h1></div>
+  ${gcard(c, { full: true })}
+  <div class="progress" role="progressbar" aria-label="Balance remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
+  <div class="pmeta"><span>${money(c.balance)} of ${money(c.original)} left</span><span>${origin}</span></div>
+  ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. Spending is paused while the card is listed.</span></div>` : ""}
+  <div class="list" style="margin-top:14px">
+    <div class="secret"><div class="rbody"><div class="s-k">Card number</div><div class="s-v">${revN ? esc(groupNum(c.number)) : "•••• •••• •••• " + esc(last4(c.number))}</div></div>
+      <button class="icon-btn" data-act="reveal" data-k="n${c.id}" aria-label="${revN ? "Hide" : "Show"} card number">${icon(revN ? "eyeoff" : "eye", 18)}</button>
+      <button class="icon-btn" data-act="copy" data-id="${c.id}" data-k="number" aria-label="Copy card number">${icon("copy", 18)}</button></div>
+    <div class="secret"><div class="rbody"><div class="s-k">PIN</div><div class="s-v">${c.pin ? (revP ? esc(c.pin) : "••••") : '<span class="muted" style="letter-spacing:0">No PIN</span>'}</div></div>
+      ${c.pin ? `<button class="icon-btn" data-act="reveal" data-k="p${c.id}" aria-label="${revP ? "Hide" : "Show"} PIN">${icon(revP ? "eyeoff" : "eye", 18)}</button>
+      <button class="icon-btn" data-act="copy" data-id="${c.id}" data-k="pin" aria-label="Copy PIN">${icon("copy", 18)}</button>` : ""}</div>
+    ${c.expires ? `<div class="secret"><div class="rbody"><div class="s-k">Expires</div><div class="s-v" style="letter-spacing:0">${esc(new Date(c.expires + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}</div></div></div>` : ""}
+  </div>
+  <div class="acts">
+    <button class="btn primary" data-act="sheet" data-s="spend" data-id="${c.id}" ${listed || c.balance <= 0 ? "disabled" : ""}>${icon("down", 19)}Spend</button>
+    ${listed ? `<button class="btn ghost" data-act="sheet" data-s="unlist" data-id="${c.id}">${icon("undo", 19)}Unlist</button>`
+      : `<button class="btn ghost" data-act="sheet" data-s="sell" data-id="${c.id}" ${c.balance <= 0 ? "disabled" : ""}>${icon("tag", 19)}Sell</button>`}
+    ${listed ? `<button class="btn ghost" data-act="sheet" data-s="reprice" data-id="${c.id}">${icon("pencil", 19)}Change price</button>`
+      : `<button class="btn ghost" data-act="sheet" data-s="edit" data-id="${c.id}">${icon("pencil", 19)}Edit</button>`}
+    <button class="btn danger" data-act="sheet" data-s="remove" data-id="${c.id}">${icon("trash", 19)}Remove</button>
+  </div>
+  <div class="sec-h"><h2>History</h2></div>
+  ${hist.length ? `<div class="list">${hist.map(x => actRow(x, { data: { cards: [] } })).join("")}</div>` : `<div class="list">${empty("pulse", "No history yet", "Spending and price changes for this card will show here.")}</div>`}`;
+}
+
+/* ================= add card ================= */
+function vAdd(a) {
+  const f = ui.add;
+  return `
+  <div class="top">${backBtn("/app/wallet", "Back to wallet")}<h1>Add a gift card</h1></div>
+  <p class="sub">Enter the details from your card. The number and PIN stay private to your account.</p>
+  <form data-form="add" novalidate>
+    <div class="field"><span id="lb-brand">Store</span>
+      <div class="brand-grid" role="radiogroup" aria-labelledby="lb-brand">
+        ${BRANDS.concat([OTHER]).map(b => `<button type="button" class="bt${f.brand === b.id ? " on" : ""}" role="radio" aria-checked="${f.brand === b.id}" data-act="add-brand" data-v="${b.id}">${b.id === "other" ? `<span class="tile" style="${cvars(b)}">${icon("plus", 16)}</span>` : tile(b)}<span>${esc(b.name)}</span></button>`).join("")}
+      </div>${fieldErr("brand")}</div>
+    ${f.brand === "other" ? `<label class="field"><span>Store name</span><input class="input${bad("brandName")}" id="add-bn" data-model="add.brandName" value="${esc(f.brandName)}" maxlength="30" placeholder="e.g. Local Bookshop" autocomplete="off">${fieldErr("brandName")}</label>` : ""}
+    <label class="field"><span>Card number</span><input class="input num${bad("number")}" id="add-num" data-model="add.number" data-fmt="card" inputmode="numeric" autocomplete="off" placeholder="XXXX XXXX XXXX XXXX" value="${esc(f.number)}">${fieldErr("number")}</label>
+    <div class="two">
+      <label class="field"><span>PIN (optional)</span><input class="input num${bad("pin")}" id="add-pin" data-model="add.pin" data-fmt="digits" data-max="8" inputmode="numeric" autocomplete="off" placeholder="1234" value="${esc(f.pin)}">${fieldErr("pin")}</label>
+      <label class="field"><span>Expires (optional)</span><input class="input${bad("expires")}" id="add-exp" type="date" data-model="add.expires" value="${esc(f.expires)}">${fieldErr("expires")}</label>
+    </div>
+    <div class="two">
+      <label class="field"><span>Original value</span><div class="money-in"><input class="input num${bad("original")}" id="add-orig" data-model="add.original" data-fmt="money" inputmode="decimal" placeholder="100" value="${esc(f.original)}"></div>${fieldErr("original")}</label>
+      <label class="field"><span>Current balance</span><div class="money-in"><input class="input num${bad("balance")}" id="add-bal" data-model="add.balance" data-fmt="money" inputmode="decimal" placeholder="${esc(f.original || "100")}" value="${esc(f.balance)}"></div>${fieldErr("balance")}</label>
+    </div>
+    ${!ui.errs.balance && !ui.errs.original ? `<p class="hint" style="margin:-8px 2px 14px">Leave the balance empty if the card hasn't been used.</p>` : ""}
+    <div class="field"><span>Card type</span><div class="seg">${["Digital", "Physical"].map(t => `<button type="button" class="${f.type === t ? "on" : ""}" aria-pressed="${f.type === t}" data-act="add-type" data-v="${t}">${t}</button>`).join("")}</div></div>
+    <label class="field"><span>Nickname (optional)</span><input class="input" id="add-nick" data-model="add.nickname" maxlength="40" placeholder="Birthday gift from Kim" value="${esc(f.nickname)}"></label>
+    <button class="btn primary block" type="submit" style="margin-top:6px">Add to wallet</button>
+  </form>`;
+}
+
+/* ================= marketplace ================= */
+function marketList(a) {
+  const q = ui.q.trim().toLowerCase();
+  let list = a.data.market.filter(l => (ui.bf === "all" || l.brand === ui.bf) && (!q || actBrand(l).toLowerCase().includes(q)));
+  const disc = l => 1 - l.price / l.value;
+  const sorters = { discount: (x, y) => disc(y) - disc(x), low: (x, y) => x.price - y.price, high: (x, y) => y.value - x.value, new: (x, y) => y.listedAt - x.listedAt };
+  return list.sort(sorters[ui.sort] || sorters.discount);
+}
+function listingRow(l, act) {
+  const b = BRANDS.find(x => x.id === l.brand) || OTHER;
+  const pct = Math.round((1 - l.price / l.value) * 100);
+  const open = act === false ? `<div class="row">` : `<button class="row" data-act="sheet" data-s="buy" data-id="${l.id}">`;
+  return `${open}
+    ${tile(b)}
+    <span class="rbody"><span class="rt" style="display:block">${esc(b.name)} · ${money(l.value)}</span><span class="rs" style="display:block">${esc(l.seller)} · ★ ${esc(l.rating)} · ${esc(l.type)}</span></span>
+    <span class="ramt num">${money(l.price)}<br><span class="off">${pct}% off</span></span>${act === false ? "</div>" : "</button>"}`;
+}
+function vMarket(a, r) {
+  const mine = r.q.get("tab") === "mine";
+  const d = a.data;
+  const my = d.cards.filter(c => c.status === "listed");
+  const head = `
+  <div class="top"><h1>Marketplace</h1>${mine ? "" : `<button class="icon-btn" data-act="market-refresh" aria-label="Load new listings">${icon("refresh", 18)}</button>`}</div>
+  <div class="seg" style="margin-bottom:16px">
+    <a href="#/app/market" class="${mine ? "" : "on"}" ${mine ? "" : 'aria-current="page"'}>Buy</a>
+    <a href="#/app/market?tab=mine" class="${mine ? "on" : ""}" ${mine ? 'aria-current="page"' : ""}>My listings (${my.length})</a>
+  </div>`;
+  if (mine) {
+    return head + `
+    <a class="list" href="#/app/profile" style="display:block;margin-bottom:12px"><span class="row"><span class="ricon">${icon("dollar", 18)}</span><span class="rbody"><span class="rt" style="display:block">Available from sales</span><span class="rs" style="display:block">${d.payout.method ? esc(d.payout.method.label) : "Connect a payout method to withdraw"}</span></span><span class="ramt num pos">${money(d.payout.balance)}</span></span></a>
+    ${my.length ? `<div class="list">${my.map(c => {
+      const b = brandOf(c);
+      return `<a class="row" href="#/app/card/${c.id}">${tile(b, brandName(c))}<span class="rbody"><span class="rt" style="display:block">${esc(brandName(c))} · ${money(c.balance)}</span><span class="rs" style="display:block">Asking ${money(c.listing.price)} · listed ${ago(c.listing.listedAt)}</span></span><span class="ramt"><small>Waiting for a buyer</small></span>${icon("right", 18, 'class="chev"')}</a>`;
+    }).join("")}</div>
+    <button class="btn ghost block" style="margin-top:12px" data-act="sheet" data-s="pick">${icon("tag", 19)}List another card</button>`
+      : `<div class="list">${empty("tag", "You have no cards listed", "List a card you won't use and get paid when someone buys it.", `<button class="btn primary sm" data-act="sheet" data-s="pick">${icon("tag", 18)}List a card</button>`)}</div>`}`;
+  }
+  const brandsHere = BRANDS.filter(b => d.market.some(l => l.brand === b.id));
+  const list = marketList(a);
+  return head + `
+  <label class="search">${icon("search", 18)}<span class="sr">Search brands</span><input id="mq" type="search" data-model="q" data-live="1" placeholder="Search brand…" value="${esc(ui.q)}" autocomplete="off"></label>
+  <div class="chips" data-keep-x="brands">
+    <button class="chip${ui.bf === "all" ? " on" : ""}" data-act="brand-filter" data-v="all">All</button>
+    ${brandsHere.map(b => `<button class="chip${ui.bf === b.id ? " on" : ""}" data-act="brand-filter" data-v="${b.id}">${esc(b.name)}</button>`).join("")}
+  </div>
+  <div class="toolbar"><span>${list.length} listing${list.length === 1 ? "" : "s"}</span>
+    <label>Sort <select id="msort" data-model="sort" data-live="1">
+      ${[["discount", "Best discount"], ["low", "Lowest price"], ["high", "Highest value"], ["new", "Newest"]].map(([v, l]) => `<option value="${v}" ${ui.sort === v ? "selected" : ""}>${l}</option>`).join("")}
+    </select></label></div>
+  ${list.length ? `<div class="list">${list.map(l => listingRow(l)).join("")}</div>`
+      : `<div class="list">${empty("search", d.market.length ? "No cards match your filters" : "Nothing for sale right now", d.market.length ? "Try a different brand or search." : "Check back soon or load new listings.", d.market.length ? `<button class="btn ghost sm" data-act="clear-filters">Clear filters</button>` : `<button class="btn primary sm" data-act="market-refresh">Load new listings</button>`)}</div>`}`;
+}
+
+/* ================= activity ================= */
+const AF = { all: null, added: ["added"], redeemed: ["redeemed", "edited"], purchases: ["purchased"], sales: ["sold", "withdraw"], listings: ["listed", "unlisted", "reprice", "removed"] };
+function vActivity(a) {
+  const d = a.data;
+  const kinds = AF[ui.af];
+  const list = d.activity.filter(x => !kinds || kinds.includes(x.kind));
+  const spent30 = -sum(d.activity.filter(x => x.kind === "redeemed" && x.t > Date.now() - 30 * DAY), x => x.amount);
+  const groups = [];
+  list.forEach(x => { const g = dayGroup(x.t); let last = groups[groups.length - 1]; if (!last || last.g !== g) groups.push(last = { g, items: [] }); last.items.push(x); });
+  const labels = { all: "All", added: "Added", redeemed: "Redeemed", purchases: "Purchases", sales: "Sales", listings: "Listings" };
+  return `
+  <div class="top"><h1>Activity</h1></div>
+  <div class="mini"><div><small>Spent, last 30 days</small><b class="num">${money(spent30)}</b></div><div><small>Saved on walletswap</small><b class="num pos">${money(d.saved)}</b></div></div>
+  <div class="chips" data-keep-x="af">${Object.keys(labels).map(k => `<button class="chip${ui.af === k ? " on" : ""}" data-act="act-filter" data-v="${k}" aria-pressed="${ui.af === k}">${labels[k]}</button>`).join("")}</div>
+  ${groups.length ? groups.map(g => `<p class="group-label">${g.g}</p><div class="list">${g.items.map(x => actRow(x, a)).join("")}</div>`).join("")
+      : `<div class="list" style="margin-top:16px">${empty("pulse", ui.af === "all" ? "No activity yet" : `No ${labels[ui.af].toLowerCase()} yet`, ui.af === "all" ? "Add a card to get started." : "Try another filter.", ui.af === "all" ? `<a class="btn primary sm" href="#/app/add">Add a card</a>` : `<button class="btn ghost sm" data-act="act-filter" data-v="all">Show all activity</button>`)}</div>`}`;
+}
+
+/* ================= profile ================= */
+function vProfile(a) {
+  const d = a.data, p = d.prefs;
+  const kv = (ic, k, v, s) => `<button class="kv" data-act="sheet" data-s="${s}"><span class="ricon">${icon(ic, 18)}</span><span class="k">${k}</span><span class="v">${esc(v)}</span>${icon("right", 18, 'class="chev"')}</button>`;
+  const pref = (ic, k, title, desc) => `<div class="pref"><span class="ricon">${icon(ic, 18)}</span><div class="rbody"><div class="rt" style="white-space:normal">${title}</div><p>${desc}</p></div>${sw(p[k], "pref", k, title)}</div>`;
+  const theme = { system: "Match device", light: "Light", dark: "Dark" }[S.theme || "system"];
+  return `
+  <div class="top"><h1>Profile</h1></div>
+  <div class="p-head"><span class="avatar lg">${esc(initials(a.name))}</span><div class="rbody"><div class="rt">${esc(a.name)}</div><div class="rs">${esc(a.email)}</div></div>
+    <button class="icon-btn" data-act="sheet" data-s="name" aria-label="Edit name">${icon("pencil", 18)}</button></div>
+  <div class="savings"><small>Total marketplace savings</small><strong class="num">${money(d.saved)}</strong><p>What you've saved buying gift cards below face value on walletswap.</p></div>
+  <div class="list" style="margin-top:12px"><div class="row"><span class="ricon">${icon("dollar", 18)}</span><span class="rbody"><span class="rt" style="display:block">Available from sales</span><span class="rs" style="display:block">${d.payout.method ? "Paid out to " + esc(d.payout.method.label) : "Connect a payout method to withdraw"}</span></span><span class="ramt num">${money(d.payout.balance)}</span></div>
+    <div style="padding:0 14px 14px"><button class="btn ${d.payout.balance > 0 ? "primary" : "ghost"} sm block" data-act="sheet" data-s="withdraw" ${d.payout.balance > 0 ? "" : "disabled"}>Withdraw to bank</button></div></div>
+  <p class="group-label">Account</p>
+  <div class="list">
+    ${kv("person", "Name", a.name, "name")}
+    ${kv("mail", "Email", a.email, "email")}
+    ${kv("lock", "Password", "••••••••", "password")}
+    ${kv("card", "Payment method", d.payment ? d.payment.label : "Not connected", "payment")}
+    ${kv("bank", "Payout method", d.payout.method ? d.payout.method.label : "Not connected", "payout")}
+  </div>
+  <p class="group-label">Preferences</p>
+  <div class="list">
+    ${pref("bell", "saleAlerts", "Sale alerts", "Tell me when one of my listings sells.")}
+    ${pref("eye", "hide", "Hide balances", "Mask amounts on the wallet screen.")}
+    ${pref("shield", "share", "Share anonymized activity", "Help improve marketplace prices. Card numbers, PINs and personal details are never shared.")}
+    ${kv("moon", "Appearance", theme, "theme")}
+  </div>
+  <p class="group-label">More</p>
+  <div class="list">
+    <a class="kv" href="#/"><span class="ricon">${icon("home", 18)}</span><span class="k">walletswap home page</span>${icon("right", 18, 'class="chev"')}</a>
+    ${kv("refresh", a.demo ? "Reset demo data" : "Clear my wallet", "", "reset")}
+  </div>
+  <button class="btn danger block" style="margin-top:22px" data-act="sheet" data-s="logout">${icon("logout", 19)}Sign out</button>
+  ${a.demo ? "" : `<button class="btn block" style="margin-top:6px;color:var(--muted);font-weight:600" data-act="sheet" data-s="delete">Delete account</button>`}
+  <div class="p-foot"><span class="logo xs">${LOGO(20)}</span><p>${TAGLINE}</p></div>
+  <p class="foot-note">${Store.cloud ? "Saved to your account on this device and others" : Store.local ? "Saved in this browser" : "Changes last until you close this page"}</p>`;
+}
+
+/* ================= auth ================= */
+function vAuth(mode) {
+  const login = mode === "login";
+  const pwType = ui.showPw ? "text" : "password";
+  return `<div class="auth"><div class="auth-in">
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a><a class="link" href="#/">Back to home</a></div>
+    <h1>${login ? "Log in" : "Create your account"}</h1>
+    <p class="lead">${login ? "Welcome back. Your cards are where you left them." : "Keep every gift card balance in one place. It takes a minute."}</p>
+    ${ui.authErr ? `<div class="form-err" role="alert">${esc(ui.authErr)}</div>` : ""}
+    <form data-form="${mode}" novalidate>
+      ${login ? "" : `<label class="field"><span>Full name</span><input class="input${bad("name")}" id="au-name" data-model="f.name" value="${esc(ui.f.name || "")}" autocomplete="name" placeholder="Alex Morgan">${fieldErr("name")}</label>`}
+      <label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || "")}" autocomplete="email" placeholder="you@example.com">${fieldErr("email")}</label>
+      <label class="field"><span>Password</span><div class="pw"><input class="input${bad("password")}" id="au-pw" type="${pwType}" data-model="f.password" value="${esc(ui.f.password || "")}" autocomplete="${login ? "current-password" : "new-password"}" placeholder="${login ? "Your password" : "At least 8 characters"}">
+        <button type="button" data-act="show-pw" aria-label="${ui.showPw ? "Hide" : "Show"} password">${icon(ui.showPw ? "eyeoff" : "eye", 19)}</button></div>${fieldErr("password")}</label>
+      <button class="btn primary block" type="submit" style="margin-top:6px">${login ? "Log in" : "Create account"}</button>
+    </form>
+    <div class="or">or</div>
+    <button class="btn ghost block" data-act="demo-login">Use the demo account</button>
+    <p class="demo-note">Demo login: ${DEMO.email}, password ${DEMO.password}</p>
+    <p class="alt">${login ? `New to walletswap? <a class="link" href="#/signup">Create an account</a>` : `Already have an account? <a class="link" href="#/login">Log in</a>`}</p>
+  </div></div>`;
+}
+
+/* ================= landing page ================= */
+const SWAP_ARCS = `<svg class="arcs" viewBox="0 0 400 400" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="butt"><path d="M40 200a160 160 0 0 1 300-78"/><path d="M318 96l24 28-34 14"/><path d="M360 200a160 160 0 0 1-300 78"/><path d="M82 304l-24-28 34-14"/></svg>`;
+function vHome(a) {
+  const art = (id, bal, nick, l4, type) => { const b = BRANDS.find(x => x.id === id); return gArt({ b, name: b.name, nick, pill: "Active", balance: bal, l4, type }); };
+  const sample = [
+    { brand: "target", value: 50, price: 42.5, seller: "Maya R.", rating: "4.9", type: "Digital" },
+    { brand: "starbucks", value: 25, price: 21.75, seller: "Noor H.", rating: "5.0", type: "Digital" },
+    { brand: "bestbuy", value: 200, price: 176, seller: "Diego M.", rating: "4.8", type: "Physical" },
+    { brand: "airbnb", value: 100, price: 88, seller: "Lena W.", rating: "4.9", type: "Digital" }
+  ];
+  const cta = a ? `<a class="btn primary" href="#/app/wallet">Open my wallet</a>`
+    : `<a class="btn primary" href="#/signup">Create a free account</a><button class="btn ghost" data-act="demo-login">Try the demo</button>`;
+  return `<div class="home">
+  <header class="wrap nav"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(34)}</a>
+    <nav class="nav-r"><button class="txt hide-sm" data-act="scroll" data-to="how">How it works</button>
+      ${a ? `<a class="btn primary sm" href="#/app/wallet">Open my wallet</a>` : `<a class="txt" href="#/login">Log in</a><a class="btn primary sm" href="#/signup">Get started</a>`}</nav></header>
+  <section class="wrap hero">
+    <div>
+      <h1>Every gift card you own, in one wallet.</h1>
+      <p>See what's left on each card, spend it before it's forgotten, and sell the ones you won't use. Or buy new cards for less than they're worth.</p>
+      <div class="cta">${cta}</div>
+    </div>
+    <div class="fan" aria-hidden="true">${SWAP_ARCS}
+      ${art("starbucks", 18.4, "Coffee fund", "2291", "Physical")}${art("target", 75, "From Grandma", "8830", "Digital")}${art("amazon", 100, "Birthday gift from Kim", "5377", "Digital")}
+      <div class="fan-tag"><small>Total balance</small><b class="num">${money(193.4)}</b></div>
+    </div>
+  </section>
+  <section class="wrap steps" id="how">
+    <h2>How it works</h2>
+    <div class="step"><span class="n">1</span><h3>Add your cards</h3><p>Type in the number and balance once. The number and PIN stay private to your account.</p></div>
+    <div class="step"><span class="n">2</span><h3>Spend and track</h3><p>Record a purchase and the balance updates. Your wallet total is what you actually have left.</p></div>
+    <div class="step"><span class="n">3</span><h3>Sell or buy</h3><p>List a card you won't use and get paid when it sells, or pick up cards from other people at a discount.</p></div>
+  </section>
+  <section class="band"><div class="wrap">
+    <div><h2>Cards people are selling right now</h2><p>Every listing shows the card's value, the price and what you save. Card details go to the buyer only after payment.</p>
+      <a class="btn primary" href="#/app/market">Browse the marketplace</a></div>
+    <div class="list" aria-label="Example listings">${sample.map(l => listingRow(l, false)).join("")}</div>
+  </div></section>
+  <section class="wrap closing"><h2>Stop leaving money on gift cards.</h2><div class="cta" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${cta}</div></section>
+  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span></div></footer>
+  </div>`;
+}
+/* ================= sheets ================= */
+function sheetWrap(title, body, lead) {
+  return `<div class="scrim${ui.sheetNew ? " anim" : ""}" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+    <div class="grab"></div><div class="sheet-h"><h2 id="sh-t">${title}</h2><button class="icon-btn" data-act="close" aria-label="Close">${icon("x", 18)}</button></div>
+    ${lead ? `<p class="lead">${lead}</p>` : ""}${body}</div></div>`;
+}
+function fin(id, model, label, o = {}) {
+  const input = `<input class="input${o.num ? " num" : ""}${bad(model)}" id="${id}" data-model="f.${model}" value="${esc(ui.f[model] ?? "")}" ${o.attrs || ""}>`;
+  return `<label class="field"><span>${label}</span>${o.money ? `<div class="money-in">${input}</div>` : input}${fieldErr(model)}${o.hint && !ui.errs[model] ? `<p class="hint">${o.hint}</p>` : ""}</label>`;
+}
+const FEE = 0.05;
+function confirmSheet(title, text, label, kind, danger) {
+  return sheetWrap(title, `<button class="btn ${danger ? "danger" : "primary"} block" data-act="confirm" data-k="${kind}">${label}</button>
+    <button class="btn block" style="margin-top:6px;font-weight:600" data-act="close">Cancel</button>`, text);
+}
+
+function sheetHtml(a) {
+  const s = ui.sheet, d = a.data;
+  const c = s.id ? d.cards.find(x => x.id === s.id) : null;
+  const cardSheets = ["spend", "edit", "sell", "reprice", "unlist", "remove"];
+  if (cardSheets.includes(s.type) && !c) return "";
+  switch (s.type) {
+    case "spend": return sheetWrap(`Spend from ${esc(brandName(c))}`, `<form data-form="spend" novalidate>
+        ${fin("sp-amt", "amount", "Amount spent", { money: true, num: true, attrs: 'data-fmt="money" inputmode="decimal" placeholder="0.00"', hint: `Available: ${money(c.balance)}` })}
+        <div class="chips" style="margin:-4px 0 16px;padding:0">${[10, 25].filter(v => v < c.balance).map(v => `<button type="button" class="chip" data-act="quick" data-v="${v}">${money(v)}</button>`).join("")}<button type="button" class="chip" data-act="quick" data-v="${c.balance}">Full balance</button></div>
+        ${fin("sp-where", "where", "Where did you use it? (optional)", { attrs: `maxlength="40" placeholder="${esc(brandName(c))} online"` })}
+        <button class="btn primary block" type="submit">Record spend</button></form>`,
+      `Balance ${money(c.balance)}. Record what you spent and the card updates.`);
+
+    case "edit": return sheetWrap("Edit card", `<form data-form="edit" novalidate>
+        ${fin("ed-nick", "nickname", "Nickname", { attrs: 'maxlength="40" placeholder="Optional"' })}
+        ${fin("ed-bal", "balance", "Current balance", { money: true, num: true, attrs: 'data-fmt="money" inputmode="decimal"', hint: `Original value ${money(c.original)}` })}
+        <div class="field"><span>Card type</span><div class="seg">${["Digital", "Physical"].map(t => `<button type="button" class="${ui.f.type === t ? "on" : ""}" aria-pressed="${ui.f.type === t}" data-act="f-type" data-v="${t}">${t}</button>`).join("")}</div></div>
+        <button class="btn primary block" type="submit">Save changes</button></form>`);
+
+    case "sell": case "reprice": {
+      const price = parseMoney(ui.f.price);
+      const ok = price > 0;
+      const pct = ok ? Math.round((1 - price / c.balance) * 100) : 0;
+      return sheetWrap(s.type === "sell" ? `Sell ${esc(brandName(c))} card` : "Change asking price", `<form data-form="${s.type}" novalidate>
+        ${fin("sl-price", "price", "Asking price", { money: true, num: true, attrs: 'data-fmt="money" data-live="1" inputmode="decimal"' })}
+        <div class="sum">
+          <div><span>Buyer saves</span><b class="num">${ok && pct > 0 ? pct + "%" : "–"}</b></div>
+          <div><span>walletswap fee (5%)</span><span class="num">${ok ? money(price * FEE) : "–"}</span></div>
+          <div><span>You'll receive</span><b class="num pos">${ok ? money(price * (1 - FEE)) : "–"}</b></div>
+        </div>
+        <button class="btn primary block" type="submit">${s.type === "sell" ? "List on marketplace" : "Save price"}</button>
+        <p class="hint" style="text-align:center;margin-top:10px">Your card number is only released to the buyer after payment. Payouts go to ${esc(d.payout.method ? d.payout.method.label : "your payout method")}.</p></form>`,
+        `Balance ${money(c.balance)}. Cards like this usually sell at 8–15% off.`);
+    }
+    case "unlist": return confirmSheet("Take this card off the marketplace?", `Your ${esc(brandName(c))} card goes back to your wallet and you can spend it again.`, "Unlist card", "unlist");
+    case "remove": return confirmSheet("Remove this card?", `The ${esc(brandName(c))} card${c.balance > 0 ? ` with ${money(c.balance)} left` : ""} will be deleted from your wallet${c.status === "listed" ? " and the marketplace" : ""}. This can't be undone.`, "Remove card", "remove", true);
+    case "logout": return confirmSheet("Sign out of walletswap?", "Your cards stay saved. Log in again any time to see them.", "Sign out", "logout", true);
+    case "reset": return confirmSheet(a.demo ? "Reset demo data?" : "Clear your wallet?", a.demo ? "Cards, activity and listings go back to how the demo started." : "All cards, activity and listings are removed. Your account stays.", a.demo ? "Reset demo data" : "Clear wallet", "reset", true);
+    case "delete": return confirmSheet("Delete your account?", "Your account, cards and history are permanently deleted.", "Delete account", "delete", true);
+
+    case "buy": {
+      const l = d.market.find(x => x.id === s.id);
+      if (!l) return sheetWrap("Listing unavailable", `<button class="btn primary block" data-act="close">Back to marketplace</button>`, "This card was just sold to someone else.");
+      const b = BRANDS.find(x => x.id === l.brand) || OTHER;
+      const pct = Math.round((1 - l.price / l.value) * 100);
+      return sheetWrap("Buy gift card", `
+        ${gArt({ b, name: b.name, nick: `Sold by ${l.seller} · ★ ${l.rating}`, pill: pct + "% off", balance: l.value, l4: "····", type: l.type, full: true })}
+        <div class="sum"><div><span>Card value</span><span class="num">${money(l.value)}</span></div><div><span>You pay</span><b class="num">${money(l.price)}</b></div><div><span>You save</span><b class="num pos">${money(l.value - l.price)}</b></div></div>
+        <div class="list" style="margin-bottom:14px"><button class="kv" data-act="sheet" data-s="payment" data-then="buy" data-id="${l.id}"><span class="ricon">${icon("card", 18)}</span><span class="k">Pay with</span><span class="v">${d.payment ? esc(d.payment.label) : "Add a payment method"}</span>${icon("right", 18, 'class="chev"')}</button></div>
+        ${d.payment ? `<button class="btn primary block" data-act="buy" data-id="${l.id}">Buy for ${money(l.price)}</button>`
+          : `<button class="btn primary block" data-act="sheet" data-s="payment" data-then="buy" data-id="${l.id}">Add payment method</button>`}
+        <p class="hint" style="text-align:center;margin-top:10px">The card number and PIN appear in your wallet right after purchase. Payments are simulated in this version.</p>`);
+    }
+    case "payment": return sheetWrap(d.payment ? "Payment method" : "Add a payment method", `<form data-form="payment" novalidate>
+        ${d.payment ? `<div class="notice" style="margin:0 0 14px">${icon("card", 18)}<span>Current: <b>${esc(d.payment.label)}</b>. Add a new card below to replace it.</span></div>` : ""}
+        ${fin("pm-name", "name", "Name on card", { attrs: 'autocomplete="cc-name" maxlength="60"' })}
+        ${fin("pm-num", "number", "Card number", { num: true, attrs: 'data-fmt="card" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456"' })}
+        <div class="two">${fin("pm-exp", "exp", "Expiry", { num: true, attrs: 'data-fmt="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY"' })}${fin("pm-cvc", "cvc", "Security code", { num: true, attrs: 'data-fmt="digits" data-max="4" inputmode="numeric" autocomplete="cc-csc" placeholder="123"' })}</div>
+        <button class="btn primary block" type="submit">Save card</button>
+        ${d.payment ? `<button type="button" class="btn danger block" style="margin-top:8px" data-act="remove-payment">Remove ${esc(d.payment.label)}</button>` : ""}
+        <p class="hint" style="text-align:center;margin-top:10px">Only the card network and last 4 digits are kept. The security code is never stored.</p></form>`);
+    case "payout": return sheetWrap(d.payout.method ? "Payout method" : "Connect a payout method", `<form data-form="payout" novalidate>
+        ${d.payout.method ? `<div class="notice" style="margin:0 0 14px">${icon("bank", 18)}<span>Current: <b>${esc(d.payout.method.label)}</b>. Enter new details below to replace it.</span></div>` : ""}
+        ${fin("po-name", "holder", "Account holder", { attrs: 'maxlength="60" autocomplete="name"' })}
+        ${fin("po-routing", "routing", "Routing number", { num: true, attrs: 'data-fmt="digits" data-max="9" inputmode="numeric" placeholder="9 digits"' })}
+        ${fin("po-acct", "account", "Account number", { num: true, attrs: 'data-fmt="digits" data-max="17" inputmode="numeric"' })}
+        <button class="btn primary block" type="submit">Save payout method</button>
+        ${d.payout.method ? `<button type="button" class="btn danger block" style="margin-top:8px" data-act="remove-payout">Disconnect ${esc(d.payout.method.label)}</button>` : ""}
+        <p class="hint" style="text-align:center;margin-top:10px">Only the last 4 digits of the account are kept.</p></form>`,
+      s.then === "sell" ? "Connect a payout method so you can be paid when your card sells." : "Where money from your sales is sent.");
+    case "withdraw": return sheetWrap("Withdraw to bank", `<form data-form="withdraw" novalidate>
+        ${fin("wd-amt", "amount", "Amount", { money: true, num: true, attrs: 'data-fmt="money" inputmode="decimal"', hint: `Available: ${money(d.payout.balance)}` })}
+        <button class="btn primary block" type="submit">Withdraw</button></form>`, `Sent to ${esc(d.payout.method ? d.payout.method.label : "your payout method")}.`);
+    case "name": return sheetWrap("Your name", `<form data-form="name" novalidate>${fin("nm", "name", "Full name", { attrs: 'maxlength="60" autocomplete="name"' })}<button class="btn primary block" type="submit">Save name</button></form>`);
+    case "email": return sheetWrap("Email address", `<form data-form="email" novalidate>${fin("em", "email", "Email", { attrs: 'type="email" autocomplete="email"' })}<button class="btn primary block" type="submit">Save email</button></form>`, a.demo ? "The demo account's email can't be changed." : "You'll use this email to log in.");
+    case "password": return sheetWrap("Change password", `<form data-form="password" novalidate>
+        ${fin("pw-cur", "current", "Current password", { attrs: 'type="password" autocomplete="current-password"' })}
+        ${fin("pw-new", "next", "New password", { attrs: 'type="password" autocomplete="new-password"', hint: "At least 8 characters." })}
+        ${fin("pw-conf", "confirm", "Confirm new password", { attrs: 'type="password" autocomplete="new-password"' })}
+        <button class="btn primary block" type="submit">Update password</button></form>`);
+    case "pick": {
+      const ok = sortCards(d.cards).filter(x => x.status !== "listed" && x.balance > 0);
+      return sheetWrap("Choose a card to sell", ok.length ? `<div class="list">${ok.map(x => `<button class="row" data-act="pick-card" data-id="${x.id}">${tile(brandOf(x), brandName(x))}<span class="rbody"><span class="rt" style="display:block">${esc(brandName(x))}</span><span class="rs" style="display:block">${esc(x.nickname || "•••• " + last4(x.number))}</span></span><span class="ramt num">${money(x.balance)}</span>${icon("right", 18, 'class="chev"')}</button>`).join("")}</div>`
+        : `<div class="list">${empty("card", "No cards to sell", "Only active cards with a balance can be listed.", `<a class="btn primary sm" href="#/app/add">Add a card</a>`)}</div>`);
+    }
+    case "theme": return sheetWrap("Appearance", `<div class="list">${[["system", "Match device"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button class="kv" data-act="theme" data-v="${v}" aria-pressed="${(S.theme || "system") === v}"><span class="k">${l}</span>${(S.theme || "system") === v ? icon("check", 20) : ""}</button>`).join("")}</div>`);
+  }
+  return "";
+}
+
+function openSheet(type, params = {}) {
+  const a = acct(); if (!a) return;
+  const d = a.data;
+  const c = params.id ? d.cards.find(x => x.id === params.id) : null;
+  ui.f = {}; ui.errs = {};
+  if (type === "sell" && !d.payout.method) return openSheet("payout", { then: "sell", id: params.id });
+  if (type === "withdraw" && !d.payout.method) return openSheet("payout", { then: "withdraw" });
+  if (type === "edit" && c) ui.f = { nickname: c.nickname || "", balance: String(c.balance), type: c.type };
+  if (type === "sell" && c) ui.f = { price: String(r2(Math.floor(c.balance * 0.9 * 4) / 4)) };
+  if (type === "reprice" && c) ui.f = { price: String(c.listing.price) };
+  if (type === "withdraw") ui.f = { amount: String(d.payout.balance) };
+  if (type === "name") ui.f = { name: a.name };
+  if (type === "email") ui.f = { email: a.email };
+  ui.sheet = Object.assign({ type }, params);
+  ui.sheetNew = true; ui.focusSheet = true;
+  render();
+}
+function closeSheet() { ui.sheet = null; ui.f = {}; ui.errs = {}; render(); }
+function afterSheet(s) { if (s && s.then) openSheet(s.then, { id: s.id }); else closeSheet(); }
+
+/* ================= toasts ================= */
+function toast(msg) {
+  const box = $("#toasts"); if (!box) return;
+  const el = document.createElement("div");
+  el.className = "toast"; el.setAttribute("role", "status"); el.textContent = msg;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); }, 2800);
+}
+
+/* ================= domain operations ================= */
+function log(d, kind, card, amount, sub) {
+  d.activity.unshift({ id: uid("a"), t: Date.now(), kind, brand: card ? card.brand : "", brandName: card ? card.brandName : "", cardId: card ? card.id : null, amount: r2(amount), sub });
+  if (d.activity.length > 300) d.activity.length = 300;
+}
+function commit() { Store.save(); render(); }
+function resetUi() { Object.assign(ui, { sheet: null, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), f: {}, errs: {}, reveal: {}, authErr: "", showPw: false }); }
+function signIn(a, msg) {
+  S.session = a.email; Store.save();
+  const to = ui.after && ui.after.startsWith("/app") ? ui.after : "/app/wallet";
+  ui.after = null; resetUi();
+  go(to); toast(msg); processSales();
+}
+function signOut(msg) { S.session = null; Store.save(); resetUi(); go("/"); toast(msg); }
+
+function processSales() {
+  const a = acct(); if (!a) return;
+  const d = a.data, now = Date.now();
+  const due = d.cards.filter(c => c.status === "listed" && c.listing && c.listing.sellAt <= now);
+  if (!due.length) return;
+  due.forEach(c => {
+    const payout = r2(c.listing.price * (1 - FEE));
+    d.cards = d.cards.filter(x => x.id !== c.id);
+    d.payout.balance = r2(d.payout.balance + payout);
+    log(d, "sold", c, payout, `Bought by ${pick(SELLERS)} for ${money(c.listing.price)}`);
+    if (ui.sheet && ui.sheet.id === c.id) ui.sheet = null;
+    if (d.prefs.saleAlerts) toast(`Your ${brandName(c)} card sold. ${money(payout)} added to your payout balance.`);
+  });
+  commit();
+}
+
+/* ================= actions ================= */
+const ACTIONS = {
+  close: () => closeSheet(),
+  scrim: (ds, el, e) => { if (e.target === el) closeSheet(); },
+  sheet: ds => openSheet(ds.s, { id: ds.id, then: ds.then }),
+  "toggle-hide": () => { const d = acct().data; d.prefs.hide = !d.prefs.hide; commit(); },
+  reveal: ds => { ui.reveal[ds.k] = !ui.reveal[ds.k]; render(); },
+  copy: ds => {
+    const c = acct().data.cards.find(x => x.id === ds.id); if (!c) return;
+    const text = ds.k === "pin" ? c.pin : digits(c.number);
+    const label = ds.k === "pin" ? "PIN copied" : "Card number copied";
+    const fallback = () => { try { const t = document.createElement("textarea"); t.value = text; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); const ok = document.execCommand("copy"); t.remove(); toast(ok ? label : "Copy isn't available here. Tap the eye to show it instead."); } catch (e) { toast("Copy isn't available here. Tap the eye to show it instead."); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(label), fallback); else fallback();
+  },
+  "add-brand": ds => { ui.add.brand = ds.v; delete ui.errs.brand; render(); },
+  "add-type": ds => { ui.add.type = ds.v; render(); },
+  "f-type": ds => { ui.f.type = ds.v; render(); },
+  "cards-filter": ds => { ui.cf = ds.v; render(); },
+  "brand-filter": ds => { ui.bf = ds.v; render(); },
+  "act-filter": ds => { ui.af = ds.v; render(); },
+  "clear-filters": () => { ui.q = ""; ui.bf = "all"; render(); },
+  "market-refresh": () => { const d = acct().data; const fresh = seedMarket(4).map(l => Object.assign(l, { listedAt: Date.now() - rand(0, 4 * MIN) })); d.market = fresh.concat(d.market).slice(0, 40); ui.sort = "new"; commit(); toast("4 new listings added"); },
+  quick: ds => { ui.f.amount = String(r2(ds.v)); delete ui.errs.amount; render(); },
+  pref: ds => { const d = acct().data; d.prefs[ds.k] = !d.prefs[ds.k]; commit(); },
+  theme: ds => { S.theme = ds.v; applyTheme(); Store.save(); render(); },
+  "pick-card": ds => openSheet("sell", { id: ds.id }),
+  "remove-payment": () => { const d = acct().data; const l = d.payment.label; d.payment = null; ui.sheet = null; commit(); toast(`${l} removed`); },
+  "remove-payout": () => { const d = acct().data; const l = d.payout.method.label; d.payout.method = null; ui.sheet = null; commit(); toast(`${l} disconnected`); },
+  buy: ds => {
+    const d = acct().data;
+    const l = d.market.find(x => x.id === ds.id);
+    if (!l) { toast("This card was just sold to someone else."); closeSheet(); return; }
+    if (!d.payment) return openSheet("payment", { then: "buy", id: ds.id });
+    const card = { id: uid("c"), brand: l.brand, brandName: "", number: genNumber(), pin: genPin(), original: l.value, balance: l.value, type: l.type, nickname: "", source: "bought", paid: l.price, addedAt: Date.now(), status: "active", listing: null };
+    d.market = d.market.filter(x => x.id !== l.id);
+    d.cards.unshift(card);
+    const saved = r2(l.value - l.price);
+    d.saved = r2(d.saved + saved);
+    log(d, "purchased", card, -l.price, "walletswap Marketplace");
+    ui.sheet = null; Store.save();
+    go(`/app/card/${card.id}`);
+    toast(`${brandName(card)} card added. You saved ${money(saved)}.`);
+  },
+  confirm: ds => {
+    const a = acct(), d = a.data, s = ui.sheet;
+    const c = s && s.id ? d.cards.find(x => x.id === s.id) : null;
+    if (ds.k === "unlist" && c) { c.status = "active"; log(d, "unlisted", c, 0, "Back in your wallet"); c.listing = null; ui.sheet = null; commit(); toast("Card removed from the marketplace"); }
+    else if (ds.k === "remove" && c) { d.cards = d.cards.filter(x => x.id !== c.id); log(d, "removed", c, 0, "Deleted from wallet"); ui.sheet = null; Store.save(); go("/app/wallet"); toast(`${brandName(c)} card removed`); }
+    else if (ds.k === "logout") signOut("Signed out");
+    else if (ds.k === "reset") { a.data = a.demo ? seedDemoData() : freshData(); ui.sheet = null; ui.reveal = {}; commit(); toast(a.demo ? "Demo data reset" : "Wallet cleared"); }
+    else if (ds.k === "delete") { delete S.accounts[a.email]; signOut("Account deleted"); }
+  },
+  "demo-login": () => { const a = S.accounts[DEMO.email]; if (a) signIn(a, `Welcome, ${firstName(a.name)}. This is the demo wallet.`); },
+  "show-pw": () => { ui.showPw = !ui.showPw; render(); const el = $("#au-pw"); if (el) el.focus(); },
+  scroll: ds => { const el = document.getElementById(ds.to); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+};
+
+/* ================= forms ================= */
+function fail(e) { ui.errs = e; render(); const k = Object.keys(e)[0]; const el = document.querySelector(`[data-model$=".${k}"]`) || document.getElementById("err-" + k); if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" }); } }
+const FORMS = {
+  async login() {
+    const f = ui.f, e = {};
+    const email = String(f.email || "").trim().toLowerCase();
+    if (!validEmail(email)) e.email = "Enter a valid email address.";
+    if (!f.password) e.password = "Enter your password.";
+    ui.authErr = "";
+    if (Object.keys(e).length) return fail(e);
+    const a = S.accounts[email];
+    if (!a || (await hashPw(f.password, a.salt)) !== a.hash) { ui.errs = {}; ui.authErr = "That email and password don't match an account. Check them and try again."; return render(); }
+    signIn(a, `Welcome back, ${firstName(a.name)}`);
+  },
+  async signup() {
+    const f = ui.f, e = {};
+    const name = String(f.name || "").trim(), email = String(f.email || "").trim().toLowerCase();
+    if (name.length < 2) e.name = "Enter your name.";
+    if (!validEmail(email)) e.email = "Enter a valid email address.";
+    else if (S.accounts[email]) e.email = "An account with this email already exists. Log in instead.";
+    if (String(f.password || "").length < 8) e.password = "Use at least 8 characters.";
+    ui.authErr = "";
+    if (Object.keys(e).length) return fail(e);
+    const a = await makeAccount(name, email, f.password, false);
+    S.accounts[email] = a;
+    signIn(a, "Your wallet is ready. Add your first card.");
+  },
+  add() {
+    const a = acct(), d = a.data, f = ui.add, e = {};
+    if (!f.brand) e.brand = "Pick the store this card is for.";
+    if (f.brand === "other" && !f.brandName.trim()) e.brandName = "Enter the store name.";
+    const num = digits(f.number);
+    if (num.length < 8 || num.length > 19) e.number = "Card numbers are 8–19 digits.";
+    else if (d.cards.some(c => digits(c.number) === num && c.brand === f.brand)) e.number = "This card is already in your wallet.";
+    if (f.pin && !/^\d{3,8}$/.test(f.pin)) e.pin = "PINs are 3–8 digits.";
+    const orig = parseMoney(f.original);
+    if (!(orig > 0)) e.original = "Enter the original value.";
+    else if (orig > 2000) e.original = "Cards over $2,000 aren't supported.";
+    const bal = f.balance === "" ? orig : parseMoney(f.balance);
+    if (f.balance !== "" && !(bal >= 0)) e.balance = "Enter the current balance.";
+    else if (orig > 0 && bal > orig) e.balance = "Can't be more than the original value.";
+    if (f.expires) { const t = new Date(f.expires + "T23:59:59"); if (isNaN(t) || t < new Date()) e.expires = "This date has passed."; }
+    if (Object.keys(e).length) return fail(e);
+    const card = { id: uid("c"), brand: f.brand, brandName: f.brand === "other" ? f.brandName.trim() : "", number: num, pin: f.pin, expires: f.expires || "", original: orig, balance: r2(bal), type: f.type, nickname: f.nickname.trim(), source: "added", paid: null, addedAt: Date.now(), status: "active", listing: null };
+    d.cards.unshift(card);
+    log(d, "added", card, card.balance, "Added manually");
+    ui.add = blankAdd(); ui.errs = {}; Store.save();
+    go("/app/wallet");
+    toast(`${brandName(card)} card added`);
+  },
+  spend() {
+    const d = acct().data, c = d.cards.find(x => x.id === ui.sheet.id); if (!c) return closeSheet();
+    const amt = parseMoney(ui.f.amount);
+    if (!(amt > 0)) return fail({ amount: "Enter how much you spent." });
+    if (amt > c.balance) return fail({ amount: `That's more than the ${money(c.balance)} left on this card.` });
+    c.balance = r2(c.balance - amt);
+    log(d, "redeemed", c, -amt, String(ui.f.where || "").trim() || `${brandName(c)} purchase`);
+    ui.sheet = null; commit();
+    toast(c.balance > 0 ? `Spent ${money(amt)}. ${money(c.balance)} left.` : `Spent ${money(amt)}. This card is used up.`);
+  },
+  edit() {
+    const d = acct().data, c = d.cards.find(x => x.id === ui.sheet.id); if (!c) return closeSheet();
+    const bal = parseMoney(ui.f.balance);
+    if (!(bal >= 0)) return fail({ balance: "Enter the current balance." });
+    if (bal > c.original) return fail({ balance: `Can't be more than the original ${money(c.original)}.` });
+    if (bal !== c.balance) log(d, "edited", c, bal - c.balance, `Corrected from ${money(c.balance)}`);
+    c.balance = bal; c.nickname = String(ui.f.nickname || "").trim(); c.type = ui.f.type || c.type;
+    ui.sheet = null; commit(); toast("Changes saved");
+  },
+  sell() { return FORMS._price(true); },
+  reprice() { return FORMS._price(false); },
+  _price(isNew) {
+    const d = acct().data, c = d.cards.find(x => x.id === ui.sheet.id); if (!c) return closeSheet();
+    const p = parseMoney(ui.f.price);
+    if (!(p > 0)) return fail({ price: "Enter an asking price." });
+    if (p >= c.balance) return fail({ price: `Set a price below the ${money(c.balance)} balance so buyers save.` });
+    if (p < c.balance * 0.5) return fail({ price: `The lowest price allowed is ${money(Math.ceil(c.balance * 50) / 100)}.` });
+    if (isNew) {
+      c.status = "listed";
+      c.listing = { price: p, listedAt: Date.now(), sellAt: Date.now() + rand(25, 70) * 1000 };
+      log(d, "listed", c, 0, `Asking ${money(p)}`);
+    } else {
+      log(d, "reprice", c, 0, `${money(c.listing.price)} to ${money(p)}`);
+      c.listing.price = p;
+    }
+    ui.sheet = null; commit(); toast(isNew ? "Listed on the marketplace" : "Price updated");
+  },
+  payment() {
+    const d = acct().data, f = ui.f, e = {};
+    const num = digits(f.number);
+    if (String(f.name || "").trim().length < 2) e.name = "Enter the name on the card.";
+    if (num.length < 13 || num.length > 19) e.number = "Card numbers are 13–19 digits.";
+    const m = /^(\d{2})\/(\d{2})$/.exec(f.exp || "");
+    if (!m || +m[1] < 1 || +m[1] > 12) e.exp = "Use MM/YY.";
+    else { const end = new Date(2000 + +m[2], +m[1], 0, 23, 59); if (end < new Date()) e.exp = "This card has expired."; }
+    if (!/^\d{3,4}$/.test(f.cvc || "")) e.cvc = "3 or 4 digits.";
+    if (Object.keys(e).length) return fail(e);
+    const net = { 4: "Visa", 5: "Mastercard", 3: "Amex", 6: "Discover" }[num[0]] || "Card";
+    d.payment = { label: `${net} •••• ${num.slice(-4)}` };
+    const s = ui.sheet; Store.save(); toast(`${d.payment.label} saved`); afterSheet(s);
+  },
+  payout() {
+    const d = acct().data, f = ui.f, e = {};
+    if (String(f.holder || "").trim().length < 2) e.holder = "Enter the account holder's name.";
+    if (!/^\d{9}$/.test(f.routing || "")) e.routing = "Routing numbers are 9 digits.";
+    if (!/^\d{4,17}$/.test(f.account || "")) e.account = "Account numbers are 4–17 digits.";
+    if (Object.keys(e).length) return fail(e);
+    d.payout.method = { label: `Bank •••• ${f.account.slice(-4)}` };
+    const s = ui.sheet; Store.save(); toast(`${d.payout.method.label} connected`); afterSheet(s);
+  },
+  withdraw() {
+    const d = acct().data;
+    const amt = parseMoney(ui.f.amount);
+    if (!(amt > 0)) return fail({ amount: "Enter an amount." });
+    if (amt > d.payout.balance) return fail({ amount: `You have ${money(d.payout.balance)} available.` });
+    d.payout.balance = r2(d.payout.balance - amt);
+    log(d, "withdraw", null, -amt, `To ${d.payout.method.label}`);
+    ui.sheet = null; commit(); toast(`${money(amt)} is on its way to ${d.payout.method.label}`);
+  },
+  name() {
+    const a = acct(), n = String(ui.f.name || "").trim();
+    if (n.length < 2) return fail({ name: "Enter your name." });
+    a.name = n; ui.sheet = null; commit(); toast("Name saved");
+  },
+  email() {
+    const a = acct(), em = String(ui.f.email || "").trim().toLowerCase();
+    if (a.demo) return fail({ email: "The demo account's email can't be changed." });
+    if (!validEmail(em)) return fail({ email: "Enter a valid email address." });
+    if (em !== a.email && S.accounts[em]) return fail({ email: "Another account already uses this email." });
+    if (em !== a.email) { delete S.accounts[a.email]; a.email = em; S.accounts[em] = a; S.session = em; }
+    ui.sheet = null; commit(); toast("Email saved");
+  },
+  async password() {
+    const a = acct(), f = ui.f, e = {};
+    if (!f.current || (await hashPw(f.current, a.salt)) !== a.hash) e.current = "That isn't your current password.";
+    if (String(f.next || "").length < 8) e.next = "Use at least 8 characters.";
+    else if (f.next !== f.confirm) e.confirm = "Passwords don't match.";
+    if (Object.keys(e).length) return fail(e);
+    a.salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    a.hash = await hashPw(f.next, a.salt);
+    ui.sheet = null; commit(); toast("Password updated");
+  }
+};
+
+/* ================= events ================= */
+function setModel(path, v) {
+  const [a, b] = path.split(".");
+  if (b === undefined) ui[a] = v; else { ui[a] = ui[a] || {}; ui[a][b] = v; }
+}
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (!fn) return;
+  if (el.dataset.act !== "scrim") e.preventDefault();
+  if (el.disabled) return;
+  fn(el.dataset, el, e);
+});
+function onInput(e) {
+  const el = e.target, m = el.dataset && el.dataset.model;
+  if (!m) return;
+  let v = el.value;
+  const fmt = el.dataset.fmt;
+  if (fmt === "card") v = groupNum(v);
+  else if (fmt === "digits") v = digits(v).slice(0, +(el.dataset.max || 19));
+  else if (fmt === "money") { v = v.replace(/[^0-9.]/g, ""); const i = v.indexOf("."); if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, "").slice(0, 2); v = v.slice(0, 9); }
+  else if (fmt === "exp") { const g = digits(v).slice(0, 4); v = g.length > 2 ? g.slice(0, 2) + "/" + g.slice(2) : g; }
+  if (fmt && el.value !== v) el.value = v;
+  setModel(m, v);
+  if (el.dataset.live) render();
+}
+document.addEventListener("input", onInput);
+document.addEventListener("change", e => { if (e.target.tagName === "SELECT") onInput(e); });
+document.addEventListener("submit", e => {
+  const f = e.target.closest("form[data-form]"); if (!f) return;
+  e.preventDefault();
+  const fn = FORMS[f.dataset.form]; if (fn) fn();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && ui.sheet) closeSheet(); });
+window.addEventListener("hashchange", () => {
+  ui.sheet = null; ui.errs = {}; ui.authErr = "";
+  const r = parseRoute();
+  if (r.parts[0] !== "app") ui.f = {};
+  render();
+  window.scrollTo(0, 0);
+});
+
+function applyTheme() {
+  const t = S && S.theme;
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+
+/* ================= boot ================= */
+(async function boot() {
+  await Store.init();
+  applyTheme();
+  render();
+  setInterval(processSales, 4000);
+  setInterval(() => { if (acct() && !ui.sheet && !document.hidden) { const r = parseRoute(); if (r.parts[1] === "activity" || r.parts[1] === "market" || (r.parts[1] || "wallet") === "wallet") render(); } }, 60000);
+  window.__giftly = window.__walletswap = { get S() { return S; }, ui, Store };
+})();
+</script></body></html>

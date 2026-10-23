@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local native SDK and generated build files
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+ios/Pods/
+ios/App/Pods/
+ios/App/DerivedData/
+supabase/.temp/

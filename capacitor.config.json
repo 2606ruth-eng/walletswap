@@ -1,0 +1,13 @@
+{
+  "appId": "com.walletswap.app",
+  "appName": "WalletSwap",
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "presentationOptions": ["badge", "sound", "banner", "list"]
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "banner", "list"]
+    }
+  }
+}
