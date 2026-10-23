@@ -2,12 +2,11 @@
 
 ## Current state
 
-The Android Capacitor project uses application ID `com.walletswap.app` and
-supports a debug build from the generated Gradle wrapper. The project has not
-been compiled in this Windows environment because Java and the Android SDK are
-unavailable. The new `.github/workflows/ci.yml` workflow runs web tests/build
-and packages an unsigned-for-release **debug** APK as a CI artifact. No APK
-exists until that workflow completes successfully.
+The Android Capacitor project uses application ID `com.walletswap.app`. The
+Windows host lacks Java and the Android SDK, but GitHub Actions successfully
+ran `assembleDebug` and uploaded the **debug APK** artifact. Download it from
+the successful WalletSwap CI run associated with the draft PR. It is a
+device-testing build, not a release-signed Play Store package.
 
 Push delivery is not configured: `android/app/google-services.json` is absent
 and there is no verified FCM delivery backend. Local notifications and app
@@ -32,7 +31,8 @@ activity, notifications, and Ruby's honest service-unavailable response until
 the live backend is separately enabled.
 
 The CI debug APK is a test artifact, not a store-ready release. Do not use a
-debug signing key for distribution.
+debug signing key for distribution. Physical-device installation and feature
+testing remain unverified.
 
 ## Store release gate
 

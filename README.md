@@ -85,5 +85,6 @@ See [RUBY_AGENT_DOCUMENTATION.md](RUBY_AGENT_DOCUMENTATION.md),
 [PHASE_2B_QA_REPORT.md](PHASE_2B_QA_REPORT.md),
 [PROJECT_AUDIT.md](PROJECT_AUDIT.md), [ANDROID_RELEASE.md](ANDROID_RELEASE.md),
 and [WALLET_PASS_READINESS.md](WALLET_PASS_READINESS.md) before deployment or
-release. GitHub Actions now defines web test/build and Android debug APK jobs;
-no CI run or APK is verified yet.
+release. GitHub Actions passed web tests/build, Ruby type-check, and Android
+debug APK assembly; the APK is a CI test artifact, not a signed store release
+or a physical-device verification.

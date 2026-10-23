@@ -208,11 +208,12 @@ historical report:
 | `npm.cmd run cap:sync` | Passed with warning | All 8 Capacitor plugins listed; ML Kit barcode/OCR packages still lack iOS `Package.swift` |
 | `npm.cmd audit --omit=dev --audit-level=high` | Passed | 0 reported production dependency vulnerabilities |
 | `git diff --check` | Passed | No whitespace errors |
+| GitHub Actions CI | Passed | Web tests/build, Ruby Deno type-check, Android `assembleDebug`, and APK artifact upload |
+| Android debug APK | Built in CI | Downloadable debug artifact; not installed or exercised on a physical device |
 | Ruby unit/static checks | Passed | No OpenAI request or authenticated live flow was made |
-| Native Android build | Blocked | No Java/Android SDK/Studio/adb/Gradle installed in this Windows environment |
+| Native Android build on this host | Blocked | No Java/Android SDK/Studio/adb/Gradle installed in this Windows environment |
 | Native iOS build | Blocked | Windows has no Xcode; ML Kit iOS integration needs the separately reviewed CocoaPods migration |
-| Edge Function type-check | Blocked | Deno unavailable |
-| CI Android artifact | Untested | Workflow added; no GitHub Actions run has occurred and no APK is verified |
+| Edge Function type-check on this host | Blocked | Deno unavailable; the CI Deno check passed |
 | Database migration `003` / `004` | Not applied | Remote status has only `001` and `002` applied |
 | Live Ruby deployment | Not performed | Remote reports `ruby-chat` v3 active with JWT verification; current local source is not deployed |
 | OpenAI live response / budget behavior | Untested | Model, exact current pricing, and chosen monthly limit must be set server-side after review |
@@ -224,7 +225,9 @@ mechanism estimates costs from configured model rates and caps reservations at
 the chosen monthly budget (which cannot exceed $100); it is not a substitute
 for the OpenAI account's own usage budget/alerts. The current Ruby handler
 returns an explicit unavailable error when live mode is not configured and
-does not produce simulated answers as a fallback.
+does not produce simulated answers as a fallback. CI type-checking caught and
+fixed an unnecessary field removal in Ruby card details, and the Android SDK
+setup was adjusted; the final CI run passed both jobs.
 
 ## Manual prerequisites by stage
 

@@ -63,8 +63,10 @@ prototype.
 - No authorized retailer transaction feed, real payment/transfer rail, FCM/APNs
   sender, Google Wallet issuer, or Apple Wallet issuer is configured. Existing
   marketplace purchase flows remain simulations.
-- No GitHub Actions workflow exists. No GitHub Actions run, store release, or
-  installable signed APK is verified.
+- GitHub Actions now runs web tests/build, a Ruby Deno type-check, and Android
+  `assembleDebug`; the latest run passed and uploaded a debug APK artifact. It
+  is not a signed release artifact and has not been installed on a physical
+  phone. No store release is verified.
 - Existing test/build baseline before this work was 67 tests. Local validation
   results for the current changes are recorded in `QA_REPORT.md` after the
   final test run.
