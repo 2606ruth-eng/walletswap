@@ -98,8 +98,7 @@ async function runTool(client: NonNullable<Awaited<ReturnType<typeof authenticat
       return { error: "Card not found." };
     }
     if (name === "get_card_details") {
-      const { owner_id: _owner, ...safe } = data;
-      return safe;
+      return data;
     }
     const balance = integerCents(data.reported_balance);
     const asking = (balance * 90n + 50n) / 100n;
