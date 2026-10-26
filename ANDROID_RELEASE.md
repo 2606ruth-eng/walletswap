@@ -3,10 +3,35 @@
 ## Current state
 
 The Android Capacitor project uses application ID `com.walletswap.app`. The
-Windows host lacks Java and the Android SDK, but GitHub Actions successfully
-ran `assembleDebug` and uploaded the **debug APK** artifact. Download it from
-the successful WalletSwap CI run associated with the draft PR. It is a
-device-testing build, not a release-signed Play Store package.
+Windows host lacks Java and the Android SDK. The previous CI run produced a
+debug APK from commit `4396f16a2f26db980f6660190674e41592b2328f` before
+Supabase variables were wired into the Android job; it is not the corrected
+APK and should not be reused for cloud-login testing.
+
+The frontend expects `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY`. The repository originally had the misspelled
+`VITE_SUPABASE_PUBLISHED_KEY`; I copied its existing value into the correctly
+named repository variable without displaying the value. The Android workflow
+reads the canonical key first and retains the typo as a compatibility fallback.
+It validates both values without printing them, builds with those Vite
+variables before Capacitor sync, verifies the compiled app contains Supabase
+initialization and Ruby UI, scans for server-secret patterns, and fails instead
+of creating a cloud-disabled APK.
+
+The demo-account FAB was previously hidden because it was conditioned on
+`!a.demo && supabaseConfigured`; Ruby's screen already had a demo explanation,
+but users had no visible way to reach it. The FAB is now visible for demo
+accounts and the login page explains the distinction. Ruby Live remains
+available only to real authenticated accounts.
+
+The Android build for PR commit
+`4396f16a2f26db980f6660190674e41592b2328f` used the former workflow, which did
+not pass either Supabase variable into Vite. That explains the observed
+cloud-login warning for real accounts. The same commit hides the Ruby FAB for
+demo users, so it also explains why Ruby was not discoverable there. The
+installed device itself does not report its APK's embedded source SHA, so
+`4396f16` is the prior CI artifact's source commit, not independent proof of
+the installed APK's provenance.
 
 Push delivery is not configured: `android/app/google-services.json` is absent
 and there is no verified FCM delivery backend. Local notifications and app
@@ -30,9 +55,12 @@ barcode/QR scanning, photo capture/OCR, permission denial, purchase simulation,
 activity, notifications, and Ruby's honest service-unavailable response until
 the live backend is separately enabled.
 
-The CI debug APK is a test artifact, not a store-ready release. Do not use a
-debug signing key for distribution. Physical-device installation and feature
-testing remain unverified.
+The corrected artifact name is
+`walletswap-android-configured-debug`. After the updated CI run completes,
+download it from the Actions run's **Artifacts** section. It is a test artifact,
+not a store-ready release. Do not use a debug signing key for distribution.
+Physical-device installation and feature testing remain unverified until the
+new artifact is installed and exercised.
 
 ## Store release gate
 

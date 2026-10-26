@@ -198,6 +198,36 @@ first account's card. Until those checks pass, real database response behavior,
 verification claims, and cross-account isolation are **not yet live-tested**.
 # Current audit checkpoint
 
+## Android cloud-login correction
+
+The prior Android workflow (commit `4396f16a2f26db980f6660190674e41592b2328f`)
+ran Vite without Supabase configuration. The app then correctly selected its
+unconfigured/demo-only path, causing the reported cloud-login error. Its Ruby
+floating entry was also hidden for demo accounts. The workflow now requires
+nonempty public Supabase settings before the Android build, injects them before
+Vite build and Capacitor sync, verifies the bundled client configuration and
+Ruby UI, and rejects server-credential patterns. Ruby is now reachable from
+demo mode, where it explicitly explains that Live requires a real signed-in
+account and does not make fake-user backend calls.
+
+The repository's original publishable variable was misspelled
+`VITE_SUPABASE_PUBLISHED_KEY`. Its existing value was copied to the expected
+`VITE_SUPABASE_PUBLISHABLE_KEY` repository variable without displaying it.
+The workflow reads the canonical variable and keeps the old spelling as a
+fallback. Existing Supabase Auth code already provides persisted sessions,
+refresh, password login/registration, confirmation/resend, recovery, native
+`walletswap://auth/callback`, and user-scoped wallet loading; no auth security
+policy was disabled or weakened.
+
+| Android cloud configuration check | Result |
+|---|---|
+| Required build variables, missing-value, HTTPS, secret-format guards | Passed |
+| Compiled-bundle presence checks for Supabase and Ruby | Passed with local public configuration |
+| Local regression suite | Passed: 76/76 |
+| Local Vite build and `npx cap sync android` | Passed |
+| Production dependency audit | Passed: 0 high/critical production advisories |
+| New configured Android CI artifact | Pending this commit's Actions run |
+
 The following results supersede older test/deployment counts elsewhere in this
 historical report:
 

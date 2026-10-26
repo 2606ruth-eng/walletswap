@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "verify:cloud-config": "node scripts/verify-cloud-build.mjs",
+    "verify:cloud-build": "node scripts/verify-cloud-build.mjs --verify-assets",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test",
     "cap:add:android": "cap add android",

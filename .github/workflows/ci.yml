@@ -30,8 +30,13 @@ jobs:
   android-debug:
     name: Android debug APK
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || vars.VITE_SUPABASE_PUBLISHED_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,17 +45,22 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: npm ci
-      - run: npm run build
       - uses: android-actions/setup-android@v3
         with:
           packages: "platform-tools platforms;android-36 build-tools;36.0.0"
-      - run: npm run cap:sync:android
+      - run: npm ci
+      - name: Validate required public Supabase configuration
+        run: npm run verify:cloud-config
+      - run: npm test
+      - run: npm run build
+      - name: Verify Supabase configuration in compiled app
+        run: npm run verify:cloud-build
+      - run: npx cap sync android
       - name: Assemble debug APK
         run: bash ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
-          name: walletswap-android-debug
+          name: walletswap-android-configured-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

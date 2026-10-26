@@ -962,7 +962,7 @@ function appShell(a, r, same) {
   }
   return `<div class="stage"><div class="phone">
     <main class="screen${same ? "" : " anim"}" id="screen">${body}</main>
-    ${!a.demo && supabaseConfigured && s !== "ruby" ? `<a class="ruby-fab" href="#/app/ruby" aria-label="Ask Ruby about your wallet">${icon("info", 19)}<span>Ruby</span></a>` : ""}
+    ${s !== "ruby" ? `<a class="ruby-fab" href="#/app/ruby" aria-label="Open Ruby AI information">${icon("info", 19)}<span>Ruby</span></a>` : ""}
     ${tabbar(tab)}
     ${ui.sheet ? sheetHtml(a) : ""}
   </div></div>`;
@@ -1250,8 +1250,11 @@ function vActivity(a) {
 function vRuby(a) {
   const chat = ui.ruby;
   if (!supabaseConfigured || a.demo) {
+    const explanation = !supabaseConfigured
+      ? "Cloud sign-in is not configured in this build. Ruby Live requires a real authenticated WalletSwap account; this demo does not send simulated credentials or private database requests."
+      : "You're using the local demo wallet. Ruby Live requires a real authenticated WalletSwap account; the demo account is not sent to Ruby or used for private database requests.";
     return `<div class="top"><a class="link" href="#/app/wallet">← Wallet</a><h1>Ruby</h1></div>
-      <div class="empty"><div class="empty-ic">${icon("info", 25)}</div><h3>Ruby needs a cloud account</h3><p>Sign in to a WalletSwap account to ask Ruby about its saved wallet.</p></div>`;
+      <div class="empty"><div class="empty-ic">${icon("info", 25)}</div><h3>Ruby Live needs a cloud account</h3><p>${explanation}</p><a class="btn primary sm" href="#/login">Go to sign in</a></div>`;
   }
   const conversations = chat.conversations.slice(0, 8).map(item =>
     `<span class="ruby-conversation-item"><button class="ruby-conversation${item.id === chat.conversationId ? " on" : ""}" type="button" data-act="ruby-open" data-id="${esc(item.id)}">${esc(item.title)}</button><button class="ruby-conversation-delete" type="button" data-act="ruby-delete" data-id="${esc(item.id)}" aria-label="Delete conversation">×</button></span>`,
@@ -1357,6 +1360,7 @@ function vAuth(mode) {
     ${login ? `<p class="alt"><a class="link" href="#/reset-password">Forgot password?</a></p>` : ""}
     ${login || mode === "signup" ? `<div class="or">or</div><button class="btn ghost block" data-act="demo-login">Use the demo account</button><p class="demo-note">Demo login: ${DEMO.email}, password ${DEMO.password}</p>` : ""}
     ${!supabaseConfigured && (mode === "login" || mode === "signup") ? `<p class="hint">${esc(supabaseConfigError || "Cloud authentication is not configured. Only the demo wallet is available.")}</p>` : ""}
+    ${login ? `<p class="alt">Ruby AI is available in WalletSwap after sign-in. The demo wallet can preview Ruby's Live-account requirements.</p>` : ""}
     ${login ? `<p class="alt">New to walletswap? <a class="link" href="#/signup">Create an account</a></p>` : mode === "signup" ? `<p class="alt">Already have an account? <a class="link" href="#/login">Log in</a></p>` : `<p class="alt"><a class="link" href="#/login">Back to log in</a></p>`}
   </div></div>`;
 }
