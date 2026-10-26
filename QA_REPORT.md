@@ -226,7 +226,7 @@ policy was disabled or weakened.
 | Local regression suite | Passed: 76/76 |
 | Local Vite build and `npx cap sync android` | Passed |
 | Production dependency audit | Passed: 0 high/critical production advisories |
-| New configured Android CI artifact | Pending this commit's Actions run |
+| New configured Android CI artifact | Passed: `walletswap-android-configured-debug`, run `40344084894`, commit `ea9da3038543dac13b85e0360d8339d01a318d51` |
 
 The following results supersede older test/deployment counts elsewhere in this
 historical report:
