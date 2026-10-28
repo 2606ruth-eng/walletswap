@@ -72,6 +72,10 @@ are user-reported/previews. Payments, transfers, settlement, payouts, retailer
 verification, push delivery, and wallet-pass issuance are not enabled. User-scoped
 in-app alerts, foreground Realtime updates, and native local notifications are
 implemented; push delivery still needs an approved FCM/APNs backend.
+Gift-card verification's official-site/manual fallback, disabled provider
+adapters, review-only SQL, and deployment gates are documented in
+[VERIFICATION_SETUP.md](VERIFICATION_SETUP.md) and
+[GIFT_CARD_VERIFICATION_QA.md](GIFT_CARD_VERIFICATION_QA.md).
 The Ruby chat UI and authenticated Responses API Edge Function are implemented
 locally. The current project reports `ruby-chat` active with JWT verification;
 the current local fail-closed/live-only source and usage-controls migration are

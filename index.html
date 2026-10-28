@@ -422,9 +422,10 @@ import { buildDeletionRequestUrl } from "./src/account-deletion.js";
 import { HELP_STEPS } from "./src/help-tour.js";
 import { isNearScrollEnd, scrollToLatest } from "./src/ruby-scroll.js";
 import { customRetailerId, normalizeRetailerSelection, rankRecentlyUsedRetailers } from "./src/retailer-preferences.js";
+import { approvedOfficialBalanceUrl, getRetailerVerification } from "./src/services/retailer-verification.js";
 import { getFavoriteRetailers, retailerFavoritesErrorMessage, setFavoriteRetailer } from "./src/services/retailer-favorites.js";
 import { createRubyConversation, deleteRubyConversation, getRubyMessages, listRubyConversations, rubyErrorMessage, sendRubyMessage } from "./src/services/ruby.js";
-import { addWalletCard, adjustReportedBalance, archiveWalletCard, recordCardPurchase, updateWalletCard } from "./src/services/wallet.js";
+import { addWalletCard, adjustReportedBalance, archiveWalletCard, recordCardPurchase, requestCardBalanceCheck, updateWalletCard } from "./src/services/wallet.js";
 /* ================= utilities ================= */
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -865,7 +866,7 @@ function seedDemoData() {
   return d;
 }
 /* ================= ui state & router ================= */
-const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "", captureMethod: "", captureConfirmed: false });
+const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "", captureMethod: "", captureConfirmed: false, retailerConfirmed: false });
 const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0 }, deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
 const cardCapture = createCardCapture({
   camera: {
@@ -1128,7 +1129,7 @@ function vCard(a, id) {
   ${gcard(c, { full: true })}
   <div class="progress" role="progressbar" aria-label="Balance remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
   <div class="pmeta"><span>${money(c.balance)} of ${money(c.original)} left</span><span>${origin}</span></div>
-  <div class="notice">${icon(c.balanceVerification === "verified" ? "check" : "info", 18)}<span>${c.balanceVerification === "verified" ? "Balance verified by an authorized integration." : "Balance reported by you; it has not been verified with the retailer."}${hasNativeCredentialVault() ? " Card credentials are stored in the device's secure storage." : " This browser does not persist full card credentials."}</span></div>
+  <div class="notice">${icon(c.balanceVerification === "verified" ? "check" : "info", 18)}<span>${c.balanceVerification === "verified" ? `Provider-confirmed balance: ${money(c.latestProviderBalance ?? c.balance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.verificationProvider ? ` · ${esc(c.verificationProvider)}` : ""}${c.latestProviderVerifiedAt || c.verifiedAt ? ` · checked ${esc(new Date(c.latestProviderVerifiedAt || c.verifiedAt).toLocaleString())}` : ""}.` : `${c.verificationStatus === "VERIFICATION_FAILED" ? `Last check failed (${esc(c.verificationErrorCategory || "unknown")}). ` : ""}Balance reported by you; it has not been verified with the retailer.${c.lastBalanceObservedAt ? ` Last recorded ${esc(new Date(c.lastBalanceObservedAt).toLocaleString())}.` : ""}${c.latestProviderBalance !== null && c.latestProviderBalance !== undefined ? ` Previous provider-confirmed balance: ${money(c.latestProviderBalance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.latestProviderVerifiedAt ? ` on ${esc(new Date(c.latestProviderVerifiedAt).toLocaleString())}` : ""}.` : ""}`}${hasNativeCredentialVault() ? " Card credentials are stored in the device's secure storage." : " This browser does not persist full card credentials."}</span></div>
   ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. Spending is paused while the card is listed.</span></div>` : ""}
   <div class="list" style="margin-top:14px">
     <div class="secret"><div class="rbody"><div class="s-k">Card number</div><div class="s-v">${revN && hasCredentials ? esc(groupNum(c.number)) : "•••• •••• •••• " + esc(cardLast4(c))}</div></div>
@@ -1140,6 +1141,8 @@ function vCard(a, id) {
     ${c.expires ? `<div class="secret"><div class="rbody"><div class="s-k">Expires</div><div class="s-v" style="letter-spacing:0">${esc(new Date(c.expires + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}</div></div></div>` : ""}
   </div>
   <div class="acts">
+    ${(() => { const url = approvedOfficialBalanceUrl(c.brand); return url ? `<a class="btn ghost" href="${esc(url)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Check balance on ${esc(brandName(c))}'s website</a>` : ""; })()}
+    ${getRetailerVerification(c.brand).verificationMethod === "AUTHORIZED_API" && getRetailerVerification(c.brand).enabled ? `<button class="btn ghost" data-act="check-card-balance" data-id="${esc(c.id)}">Check Balance</button>` : ""}
     ${!a.demo && supabaseConfigured ? `<a class="btn ghost" href="#/app/ruby" data-act="ruby-card" data-id="${esc(c.id)}">Ask Ruby about this card</a>` : ""}
     <button class="btn primary" data-act="sheet" data-s="spend" data-id="${c.id}" ${listed || c.balance <= 0 ? "disabled" : ""}>${icon("down", 19)}Record purchase</button>
     ${listed ? `<button class="btn ghost" data-act="sheet" data-s="unlist" data-id="${c.id}">${icon("undo", 19)}Unlist</button>`
@@ -1215,6 +1218,11 @@ function vAdd(a) {
   const f = ui.add;
   const capture = ui.capture;
   const captureBusy = ["scanning", "installing", "taking-photo", "recognizing"].includes(capture.status);
+  const retailerVerification = getRetailerVerification(f.brand);
+  const officialBalanceUrl = approvedOfficialBalanceUrl(f.brand);
+  const retailerLabel = f.brand === "other" || f.brand.startsWith("custom-")
+    ? f.brandName.trim() || "this retailer"
+    : brandName({ brand: f.brand });
   if (a && !a.demo && supabaseConfigured) loadRetailerFavoritesFor(a);
   const capturePanel = capture.status === "idle" ? "" : `
     <section class="capture-state" aria-live="polite">
@@ -1242,6 +1250,15 @@ function vAdd(a) {
   </div>
   ${capturePanel}
   ${f.captureMethod ? `<div class="capture-confirm"><button class="btn ${f.captureConfirmed ? "primary" : "ghost"} sm" type="button" data-act="capture-confirm">${f.captureConfirmed ? "Details reviewed" : "I reviewed these details"}</button><span>Confirm the retailer, printed face value, expiry, and your remaining balance before saving.</span></div>${fieldErr("captureConfirmed")}` : ""}
+  ${f.brand ? `<section class="capture-review" aria-label="Retailer verification options">
+    <p><b>${esc(retailerLabel)} · ${retailerVerification.verificationMethod === "AUTHORIZED_API" ? "Automatic check" : retailerVerification.verificationMethod === "OFFICIAL_WEBSITE" ? "Official website check" : "Manual check"}</b></p>
+    ${retailerVerification.verificationMethod === "AUTHORIZED_API" && retailerVerification.enabled
+      ? `<p>An approved provider is configured. Save the card first, then use Check Balance on its wallet page. A separate consent confirmation is required for every request.</p>`
+      : officialBalanceUrl
+        ? `<p>Automatic verification is unavailable. Check the balance on the official retailer site, then return and enter the amount below. The link does not include your card number or PIN; your entry is saved as user-reported.</p><a class="btn ghost sm" href="${esc(officialBalanceUrl)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Check on ${esc(retailerLabel)}'s Website</a>`
+        : `<p>No approved automatic provider or verified balance URL is available. Use the retailer's own app, website, or printed support details, then enter the amount below. Your entry is saved as user-reported.</p>`}
+    <button class="btn ${f.retailerConfirmed ? "primary" : "ghost"} sm" type="button" data-act="confirm-retailer" aria-pressed="${f.retailerConfirmed}">${f.retailerConfirmed ? `Confirmed ${esc(retailerLabel)}` : `Confirm ${esc(retailerLabel)} is the issuer`}</button>${fieldErr("retailerConfirmed")}
+  </section>` : ""}
   <form data-form="add" novalidate>
     <div class="field"><span id="lb-brand">Store</span>
       ${retailerPickerMarkup(a, f)}${fieldErr("brand")}</div>
@@ -1838,6 +1855,7 @@ const ACTIONS = {
     ui.add.brand = ds.v;
     ui.add.brandName = ds.v.startsWith("custom-") ? String(ds.retailerName || "").trim() : "";
     ui.add.captureConfirmed = false;
+    ui.add.retailerConfirmed = false;
     delete ui.errs.brand;
     delete ui.errs.brandName;
     render();
@@ -1849,6 +1867,7 @@ const ACTIONS = {
     ui.add.brand = retailer;
     ui.add.brandName = name;
     ui.add.captureConfirmed = false;
+    ui.add.retailerConfirmed = false;
     ui.retailers.search = "";
     delete ui.errs.brand;
     delete ui.errs.brandName;
@@ -1873,6 +1892,20 @@ const ACTIONS = {
     }
   },
   "add-type": ds => { ui.add.type = ds.v; render(); },
+  "confirm-retailer": () => { ui.add.retailerConfirmed = true; delete ui.errs.retailerConfirmed; render(); },
+  "check-card-balance": async ds => {
+    if (!ds.id) { toast("Add and save this card before requesting an automatic check."); return; }
+    if (!window.confirm("Send a balance-check request for this card to WalletSwap's approved verification provider?")) return;
+    try {
+      const result = await requestCardBalanceCheck(ds.id);
+      await refreshRemoteAccount();
+      toast(result?.test_data
+        ? "TEST result only: the sandbox balance was not saved as a wallet balance."
+        : "The authorized provider-confirmed balance was recorded.");
+    } catch (error) {
+      reportOperationError(error, "Balance verification is unavailable. No provider-confirmed balance was recorded.");
+    }
+  },
   "f-type": ds => { ui.f.type = ds.v; render(); },
   "cards-filter": ds => { ui.cf = ds.v; render(); },
   "brand-filter": ds => { ui.bf = ds.v; render(); },
@@ -2026,12 +2059,14 @@ const ACTIONS = {
     if (ui.capture.brand) { ui.add.brand = ui.capture.brand; ui.add.brandName = ""; }
     ui.add.captureMethod = "barcode";
     ui.add.captureConfirmed = false;
+    ui.add.retailerConfirmed = false;
     ui.retailers.search = "";
     render();
   },
   "capture-apply-ocr": () => {
     ui.add = applyRecognizedDetails(ui.add, ui.capture.candidates || {});
     ui.add.captureMethod = "photo";
+    ui.add.retailerConfirmed = false;
     render();
   },
   "capture-confirm": () => { ui.add.captureConfirmed = true; delete ui.errs.captureConfirmed; render(); },
@@ -2275,6 +2310,7 @@ const FORMS = {
     const a = acct(), d = a.data, f = ui.add, e = {};
     if (f.captureMethod && !f.captureConfirmed) e.captureConfirmed = "Review and confirm the captured suggestions before saving.";
     if (!f.brand) e.brand = "Pick the store this card is for.";
+    if (f.brand && !f.retailerConfirmed) e.retailerConfirmed = "Confirm which retailer issued this card.";
     if ((f.brand === "other" || f.brand.startsWith("custom-")) && !f.brandName.trim()) e.brandName = "Enter the store name.";
     const num = digits(f.number);
     if (num.length < 8 || num.length > 19) e.number = "Card numbers are 8–19 digits.";

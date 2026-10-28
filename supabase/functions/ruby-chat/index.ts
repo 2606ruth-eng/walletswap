@@ -2,6 +2,7 @@ import { authenticatedUser, serviceClient } from "../_shared/client.ts";
 import { jsonResponse, rejectDisallowedOrigin, validUuid } from "../_shared/http.ts";
 import { conversationInput, responseFunctionCalls, responseText as extractResponseText, toResponsesTools } from "../_shared/ruby-responses.js";
 import { estimateRubyCostMicros, formatRubyCostMicros, rubyCostConfiguration, rubyUsageFromResponse } from "../_shared/ruby-usage.js";
+import { getCardBalanceProvider } from "../_shared/card-balance-providers.js";
 
 const MAX_MESSAGE = 4000;
 const MAX_REQUEST_BYTES = 16_000;
@@ -17,7 +18,7 @@ const OPTIONAL_TOOL_ARGUMENTS = new Set(["get_card_activity.card_id", "get_expir
 const TOOL_DEFINITIONS = [
   ["get_wallet_summary", "Summarize this authenticated user's balances by currency and verification status.", {}],
   ["get_wallet_cards", "List safe metadata for this authenticated user's active gift cards. Include reported balance and verification status; never return credentials.", {}],
-  ["get_card_details", "Read safe metadata for one card owned by this user. Never return full identifiers.", {
+  ["get_card_details", "Read safe card metadata and verification source, status, last provider balance, check time, safe failure category, supported verification method, and official retailer URL. Never return credentials or invent balances.", {
     card_id: { type: "string" },
   }],
   ["get_card_activity", "Read recent activity recorded in WalletSwap for this user.", {
@@ -83,7 +84,7 @@ async function runTool(client: NonNullable<Awaited<ReturnType<typeof authenticat
   }
   if (name === "get_wallet_cards") {
     const { data, error, count } = await client.from("wallet_cards")
-      .select("id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at", { count: "exact" })
+      .select("id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at,balance_verification_status,latest_provider_balance_minor,latest_provider_currency,latest_provider_verified_at,verification_provider_id,last_verification_attempt_at,verification_error_category", { count: "exact" })
       .is("archived_at", null).order("created_at", { ascending: false }).limit(50);
     if (error) throw error;
     return { cards: data, total_count: count };
@@ -91,14 +92,39 @@ async function runTool(client: NonNullable<Awaited<ReturnType<typeof authenticat
   if (name === "get_card_details" || name === "estimate_listing_price" || name === "prepare_listing") {
     if (!validUuid(args.card_id)) throw new Error("Invalid card id");
     const { data, error } = await client.from("wallet_cards")
-      .select("id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at")
+      .select("id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at,balance_verification_status,latest_provider_balance_minor,latest_provider_currency,latest_provider_verified_at,verification_provider_id,last_verification_attempt_at,verification_error_category")
       .eq("id", args.card_id).is("archived_at", null).maybeSingle();
     if (error || !data) {
       if (error) throw error;
       return { error: "Card not found." };
     }
     if (name === "get_card_details") {
-      return data;
+      const { data: retailer, error: retailerError } = await client.from("retailer_integrations")
+        .select("verification_method,integration_status,supports_balance_verification,authorized_provider,supported_card_types,official_balance_url,official_domain")
+        .eq("retailer", data.retailer).maybeSingle();
+      if (retailerError) throw retailerError;
+      const provider = retailer?.authorized_provider
+        ? getCardBalanceProvider(retailer.authorized_provider)
+        : null;
+      const adapterEnabled = !!provider?.supportsCard({
+        retailer: data.retailer,
+        cardType: data.card_type,
+        currency: data.currency,
+      });
+      return {
+        ...data,
+        verification_method: retailer?.verification_method || "MANUAL_ONLY",
+        official_balance_url: retailer?.official_balance_url || null,
+        automatic_verification_available: retailer?.verification_method === "AUTHORIZED_API"
+          && retailer.integration_status === "approved"
+          && retailer.supports_balance_verification === true
+          && Array.isArray(retailer.supported_card_types)
+          && retailer.supported_card_types.includes(data.card_type)
+          && adapterEnabled,
+        latest_provider_confirmed_balance_minor: data.latest_provider_balance_minor,
+        latest_provider_confirmed_currency: data.latest_provider_currency,
+        latest_provider_confirmed_at: data.latest_provider_verified_at,
+      };
     }
     const balance = integerCents(data.reported_balance);
     const asking = (balance * 90n + 50n) / 100n;
