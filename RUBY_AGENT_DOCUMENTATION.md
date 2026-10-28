@@ -74,37 +74,42 @@ payout.
 
 ## Setup and deployment status
 
-**Current audit status:** Supabase reports only `ruby-chat` ACTIVE (JWT
-verification enabled, version 3). The linked migration history reports
-`20261023000100` and `20261023000200` applied; Phase 2B migration `003` and
-Ruby cost-controls migration `004` are not applied. The local `ruby-chat` source
-and migration `004` in this worktree are not deployed. Do not infer that the
-active remote function has the local behavior described above. No live model
-request was made, and no deployment or migration was performed during this
-audit.
+**Current deployment status:** Supabase reports `ruby-chat` ACTIVE, version 5,
+with JWT verification enabled. Migrations `20261023000100` through
+`20261023000400` are applied; a dry-run reports no pending migrations. After
+explicit approval, migrations `003` and `004` were applied and only `ruby-chat`
+was deployed via the Supabase API bundler. `account-delete` was not deployed.
+The server-side settings are `RUBY_AI_MODE=live`,
+`RUBY_OPENAI_MODEL=gpt-4o-mini`, input/output prices of `$0.15`/`$0.60` per
+million tokens, and the selected `$10` monthly application cap. These match
+the standard rates published at
+https://developers.openai.com/api/docs/pricing when checked. The existing
+`OPENAI_API_KEY` value was neither read nor changed; its current availability
+and model access have not been verified, and no live OpenAI request was made.
+The application cap estimates/reserves model spend but is not an OpenAI billing
+guarantee; keep an OpenAI account-level usage alert/budget enabled.
 
 The browser project uses the existing `VITE_SUPABASE_URL`,
 `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_AUTH_REDIRECT_URL`
 variables. The configured project's public Auth settings endpoint returned
 HTTP 200. The Supabase CLI is linked to the existing project. Prior work
-reported read-only metadata checks of base-table RLS and an authenticated
-401 response from the deployed function. The current function-list query
+reported read-only metadata checks of base-table RLS. An unauthenticated POST
+to the deployed function returned HTTP 401. The current function-list query
 reports only `ruby-chat` active. Never retrieve secret values. `account-delete`
 remains undeployed.
 
 ## Deployment and test status
 
-The existing deployed function is `ruby-chat`. A deployment command for a
-future, separately approved update is:
+The deployed function is `ruby-chat` version 5 with JWT verification enabled.
+The following command deploys only that function for a future, separately
+approved update:
 
 ```powershell
 npx.cmd supabase functions deploy ruby-chat --use-api
 ```
 
 Historical notes below describe earlier versions and tests and are not current
-deployment evidence. Supabase now reports `ruby-chat` version 3 active with
-JWT verification enabled; the current local suite/build results are in
-`QA_REPORT.md`. The signup/login UI now explains
+deployment evidence. The signup/login UI now explains
 required email confirmation, preserves the attempted address for sign-in,
 offers a confirmation-resend action, and gives a specific message for
 Supabase's `email_not_confirmed`, unauthorized-recipient, and email-rate-limit
@@ -130,24 +135,27 @@ Remaining manual/test steps:
    email confirmation enabled and do not share SMTP credentials in chat.
 2. The current browser account is already signed in and has the synthetic $30
    unverified Starbucks sample. If this is not a test account, remove that card.
-3. Run a second-account isolation test before using another user's real data.
-6. Before live activation, apply migration `20261023000400` after reviewing
-   it, then set `RUBY_AI_MODE=live`, `RUBY_OPENAI_MODEL`,
-   `RUBY_INPUT_COST_PER_MILLION_USD`, `RUBY_OUTPUT_COST_PER_MILLION_USD`, and
-   `RUBY_MONTHLY_BUDGET_USD` as server-only Edge Function settings. Use current
-   official model pricing and an owner-selected cap from $0.01 to $100. Keep
-   the existing OpenAI key only in Supabase secrets. Migration and function
-   deployment require separate explicit approval.
-7. Set `WALLET_SWAP_ALLOWED_ORIGINS` to the exact deployed WalletSwap web
+3. For live verification, use a controlled authenticated test account with a
+   synthetic $100 unverified card, compare Ruby's wallet, reported-total,
+   illustrative-sale, expiry, and verification answers with the database, then
+   repeat with a second account to test isolation. These live authenticated
+   checks have not yet been performed; no test-account credentials were
+   available in this deployment step.
+4. Verify that the existing `OPENAI_API_KEY` is available in Supabase Edge
+   Function Secrets without displaying or retrieving its value, then run one
+   authenticated live request and confirm actual OpenAI model access. The key
+   was not inspected or changed during this deployment.
+5. Set `WALLET_SWAP_ALLOWED_ORIGINS` to the exact deployed WalletSwap web
    origin before enabling a hosted browser domain. Its current default allows
    localhost and Capacitor origins.
-8. Run the pgTAP suite and authenticated wallet persistence checks in a
+6. Run the pgTAP suite and authenticated wallet persistence checks in a
    Postgres/Supabase test environment. Deno and local Postgres/Docker are not
    available in this Windows environment.
 
 The `account-delete` function remains unreviewed and undeployed. Notification
 and retailer-verification functions remain provider-gated stubs.
 
-No new OpenAI request was made during this work. The existing OpenAI key value
-was never retrieved or changed. No new project or provider was added. Live AI
-remains disabled unless `RUBY_AI_MODE=live` is explicitly set server-side.
+No new OpenAI request was made during deployment. The existing OpenAI key value
+was never retrieved or changed. No new project or provider was added. Live mode
+is configured server-side, but a successful live AI request remains unverified
+until key availability and account/model access are checked.

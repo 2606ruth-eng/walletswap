@@ -19,11 +19,12 @@ export function centsToDecimal(cents) {
 }
 
 export function mapWalletCard(row) {
+  const isCustomRetailer = String(row.retailer || "").startsWith("custom-");
   return {
     id: row.id,
     brand: row.retailer,
-    brandName: row.retailer === "other" ? row.nickname : "",
-    nickname: row.retailer === "other" ? "" : row.nickname,
+    brandName: row.retailer === "other" || isCustomRetailer ? row.nickname : "",
+    nickname: row.retailer === "other" || isCustomRetailer ? "" : row.nickname,
     number: "",
     pin: "",
     last4: String(row.masked_identifier || "").slice(-4),
@@ -46,10 +47,11 @@ export function mapWalletCard(row) {
 }
 
 export function walletCardInsertPayload(card, ownerId) {
+  const usesRetailerLabel = card.brand === "other" || String(card.brand || "").startsWith("custom-");
   return {
     owner_id: ownerId,
     retailer: String(card.brand || "").trim().toLowerCase(),
-    nickname: String(card.brand === "other" ? card.brandName : card.nickname || "").trim().slice(0, 80),
+    nickname: String(usesRetailerLabel ? card.brandName : card.nickname || "").trim().slice(0, 80),
     card_type: String(card.type || "").toLowerCase(),
     currency: String(card.currency || "USD").toUpperCase(),
     original_value: centsToDecimal(dollarsToCents(card.original)),

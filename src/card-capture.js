@@ -70,7 +70,10 @@ export function parseOcrCandidates(text) {
 
 export function applyRecognizedDetails(form, candidates) {
   const updated = { ...form };
-  if (candidates.brand) updated.brand = candidates.brand;
+  if (candidates.brand) {
+    updated.brand = candidates.brand;
+    updated.brandName = candidates.brand.startsWith("custom-") ? updated.brandName : "";
+  }
   if (candidates.original) updated.original = candidates.original;
   if (candidates.expires) updated.expires = candidates.expires;
   updated.captureConfirmed = false;

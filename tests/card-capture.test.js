@@ -171,9 +171,10 @@ test("invalid and missing reported balances are rejected", () => {
 
 test("manual corrections remain editable and require explicit confirmation", () => {
   const recognized = applyRecognizedDetails(
-    { brand: "", number: "12345678", pin: "1234", original: "", expires: "", balance: "", captureConfirmed: true },
+    { brand: "custom-old-store", brandName: "Old Store", number: "12345678", pin: "1234", original: "", expires: "", balance: "", captureConfirmed: true },
     { brand: "amazon", original: "50", expires: "2029-12-01" },
   );
+  assert.equal(recognized.brandName, "");
   const corrected = { ...recognized, original: "40", expires: "2030-01-01", balance: "23.50" };
 
   assert.equal(corrected.brand, "amazon");

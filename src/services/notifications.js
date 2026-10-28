@@ -40,7 +40,23 @@ export async function getNotificationPreferences() {
   return data;
 }
 
-export async function updateNotificationPreferences(preferences) {
+export function notificationPreferenceErrorMessage(error, online = true) {
+  if (!online || error?.name === "TypeError" && /fetch|network/i.test(error.message || "")) {
+    return "You're offline. This preference wasn't saved; reconnect and try again.";
+  }
+  if (error?.code === "42501" || error?.status === 401 || error?.status === 403) {
+    return "WalletSwap couldn't save this preference for your account. Sign in again and retry.";
+  }
+  if (error?.code === "PREF_ROW_MISSING" || error?.code === "PGRST116") {
+    return "Notification settings aren't available for this account yet. Refresh your account and retry.";
+  }
+  if (error?.code === "PGRST205" || error?.code === "42P01") {
+    return "Notification settings aren't available in this app version. Update WalletSwap and retry.";
+  }
+  return "This preference wasn't saved. Your previous setting is unchanged; please retry.";
+}
+
+export async function updateNotificationPreferences(preferences, client = requireSupabase()) {
   const allowed = [
     "card_activity_enabled",
     "balance_change_enabled",
@@ -50,8 +66,13 @@ export async function updateNotificationPreferences(preferences) {
   ];
   const update = Object.fromEntries(Object.entries(preferences).filter(([key, value]) => allowed.includes(key) && typeof value === "boolean"));
   if (!Object.keys(update).length) return;
-  const { error } = await requireSupabase().from("notification_preferences").update(update);
+  const { data: authData, error: authError } = await client.auth.getUser();
+  if (authError) throw authError;
+  if (!authData.user) throw Object.assign(new Error("Authentication is required."), { code: "42501" });
+  const { data, error } = await client.from("notification_preferences").update(update)
+    .eq("user_id", authData.user.id).select("user_id").maybeSingle();
   if (error) throw error;
+  if (!data) throw Object.assign(new Error("Preference row is missing."), { code: "PREF_ROW_MISSING" });
 }
 
 export async function markNotificationRead(id) {

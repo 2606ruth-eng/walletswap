@@ -70,7 +70,7 @@ test("Android CI validates and builds Supabase configuration before Capacitor sy
   assert.ok(androidJob.indexOf("npm run build") < androidJob.indexOf("npm run verify:cloud-build"));
   assert.ok(androidJob.indexOf("npm run verify:cloud-build") < androidJob.indexOf("npx cap sync android"));
   assert.ok(androidJob.indexOf("npx cap sync android") < androidJob.indexOf("assembleDebug"));
-  assert.match(workflow, /name:\s*walletswap-android-configured-debug/);
+  assert.match(workflow, /name:\s*walletswap-phase1-repairs-debug/);
 });
 
 test("Android auth and Ruby use the configured authenticated Supabase client", () => {

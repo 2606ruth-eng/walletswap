@@ -226,14 +226,14 @@ policy was disabled or weakened.
 | Local regression suite | Passed: 76/76 |
 | Local Vite build and `npx cap sync android` | Passed |
 | Production dependency audit | Passed: 0 high/critical production advisories |
-| New configured Android CI artifact | Passed: `walletswap-android-configured-debug`, run `40344084894`, commit `ea9da3038543dac13b85e0360d8339d01a318d51` |
+| New configured Android CI artifact | Passed: `walletswap-android-configured-debug`, run `40344925295`, commit `d43c1c8f9bad2b9300ba880d7278d516cca2c7fa` |
 
 The following results supersede older test/deployment counts elsewhere in this
 historical report:
 
 | Check | Result | Boundary |
 |---|---|---|
-| `npm.cmd test -- --test-reporter=tap` | Passed: **72/72** | Includes live-only Ruby behavior and usage-cost helper tests |
+| `npm.cmd test -- --test-reporter=tap` | Passed: **76/76** in the latest run | Includes live-only Ruby behavior and usage-cost helper tests |
 | `npm.cmd run build` | Passed | Vite production build |
 | `npm.cmd run cap:sync` | Passed with warning | All 8 Capacitor plugins listed; ML Kit barcode/OCR packages still lack iOS `Package.swift` |
 | `npm.cmd audit --omit=dev --audit-level=high` | Passed | 0 reported production dependency vulnerabilities |
@@ -244,38 +244,109 @@ historical report:
 | Native Android build on this host | Blocked | No Java/Android SDK/Studio/adb/Gradle installed in this Windows environment |
 | Native iOS build | Blocked | Windows has no Xcode; ML Kit iOS integration needs the separately reviewed CocoaPods migration |
 | Edge Function type-check on this host | Blocked | Deno unavailable; the CI Deno check passed |
-| Database migration `003` / `004` | Not applied | Remote status has only `001` and `002` applied |
-| Live Ruby deployment | Not performed | Remote reports `ruby-chat` v3 active with JWT verification; current local source is not deployed |
-| OpenAI live response / budget behavior | Untested | Model, exact current pricing, and chosen monthly limit must be set server-side after review |
+| Database migration `003` / `004` | Applied after approval | Remote migration ledger reports `001` through `004` applied |
+| Live Ruby deployment | Deployed after approval | Remote `ruby-chat` version 5 ACTIVE with JWT verification enabled |
+| OpenAI live response / budget behavior | Untested | Model pricing and the selected monthly limit were configured after approval; a real authenticated OpenAI request has not been made |
 | Physical-device camera/notifications | Untested | Requires Android/iPhone testing |
 | Retailer feed / real payments / Wallet passes | Unavailable | No authorized retailer, payment, Apple issuer, or Google issuer integration is configured |
 
-No Supabase migration or function was deployed in this audit. The local budget
-mechanism estimates costs from configured model rates and caps reservations at
-the chosen monthly budget (which cannot exceed $100); it is not a substitute
-for the OpenAI account's own usage budget/alerts. The current Ruby handler
-returns an explicit unavailable error when live mode is not configured and
-does not produce simulated answers as a fallback. CI type-checking caught and
-fixed an unnecessary field removal in Ruby card details, and the Android SDK
-setup was adjusted; the final CI run passed both jobs.
+The table above records the earlier audit state and is superseded by the
+deployment results below.
+
+## Current deployment results
+
+After explicit approval, migrations `20261023000300` and
+`20261023000400` were applied to the existing Supabase project. The migration
+ledger now reports `001` through `004` applied, and a subsequent `db push
+--dry-run` reports no pending migrations.
+
+Only `ruby-chat` was deployed using the Supabase API bundler. Supabase reports
+it ACTIVE at version 5 with `verify_jwt=true`; `account-delete` remains
+undeployed. The five non-key Edge Function settings were set to Live mode,
+`gpt-4o-mini`, `$0.15` input and `$0.60` output per million tokens, and the
+user-selected `$10` monthly application cap. The rates were checked against
+the official pricing page:
+https://developers.openai.com/api/docs/pricing. The existing `OPENAI_API_KEY`
+was neither read nor changed, so its current presence and account/model access
+remain unverified. No OpenAI request was made.
+
+| Check | Result |
+|---|---|
+| `npm.cmd test` | Passed: **76/76** |
+| `npm.cmd run build` | Passed: Vite production build |
+| Apply migrations `003` and `004` | Passed after explicit approval |
+| Remote migration dry-run | Passed: database up to date |
+| Deploy only `ruby-chat` with API bundler | Passed: ACTIVE version 5 |
+| JWT verification | Enabled (`verify_jwt=true`) |
+| POST without authentication | Rejected: **HTTP 401** |
+| `account-delete` deployment | Not performed |
+| Authenticated Ruby/OpenAI request | Untested; no live request was made |
+
+The `$10` cap is enforced by the application usage ledger based on configured
+token rates and bounded reservations. It is not a provider billing guarantee;
+an OpenAI account-level usage alert/budget is still recommended.
+
+### Remaining live checks
+
+- Verify the existing `OPENAI_API_KEY` is present in Supabase Edge Function
+  Secrets without retrieving or displaying it, then test an authenticated Ruby
+  request against a controlled account.
+- With a synthetic `$100` unverified card, test wallet contents, total reported
+  balance, illustrative sale estimate, expiring cards, and Ruby's refusal to
+  claim balance verification. Compare results against authorized database
+  rows.
+- Test cross-user isolation using a second authenticated account. These
+  account-specific live tests were not performed because no test-account
+  credentials were available during deployment.
+- Keep the OpenAI account-level usage alert/budget enabled; the app-level cap
+  alone cannot guarantee total provider spend.
 
 ## Manual prerequisites by stage
 
-1. **Ruby activation:** choose a monthly limit from $0.01 to $100; verify the
-   selected model's current official input/output prices; review migrations
-   `003`/`004`; approve applying them and deploying only `ruby-chat`; then test
-   with an authenticated test account and verify a second account cannot read
-   the first user's cards.
+1. **Ruby live validation:** confirm the existing OpenAI secret is available
+   without displaying its value, then use a controlled test account and a
+   synthetic $100 unverified card to compare live answers with database values.
+   Repeat with a second account to verify cross-user isolation. The selected
+   model, published pricing, $10 cap, migration application, and deployment are
+   already configured.
 2. **Android app:** use a machine or CI runner with Android SDK/JDK to verify
    the new debug build job and install the generated debug APK on a physical
    phone. Release signing and Play publication are separate approvals.
 3. **iOS app:** use macOS/Xcode to review and perform the CocoaPods migration,
    sync, compile, and test scanning/notifications on an iPhone.
-4. **Notifications and retailer events:** deploy migration `003` only after
-   review; test permissions on devices. A real balance feed additionally needs
-   a retailer-authorized API contract and provider signature credentials.
+4. **Notifications and retailer events:** test notification permissions on
+   physical devices. A real balance feed additionally needs a
+   retailer-authorized API contract and provider signature credentials; no
+   provider integration is configured.
 5. **Apple/Google Wallet:** obtain issuer authorization, program/issuer access,
    certificates/signing setup, and device tests; no pass is currently issued.
 6. **Hosted web auth:** provide the actual public HTTPS origin and add its
    callback/recovery URLs to the Supabase Auth allow-list; no URL has been
    invented or configured.
+
+## Profile, Ruby, retailer, help, and scanner repair verification
+
+This section records the latest UI repair work. Historical tables above are
+preserved; the results below supersede their earlier test/build counts for this
+change set.
+
+| Check | Result | Boundary |
+|---|---|---|
+| `npm.cmd test` | Passed: **85/85** | Includes retailer helper/service tests, owner scoping, deletion request, Ruby scroll behavior, tour content, scanner handoff, and existing regression suites |
+| `npm.cmd run build` | Passed | Vite production build |
+| `npx.cmd cap sync android` | Passed | Synced 8 installed Capacitor plugins and current web assets |
+| `git diff --check` | Passed | No whitespace errors |
+| App-shell browser preview | Passed for navigation smoke checks | Local demo: home/help tour, demo wallet, Add Card recent retailers and manual retailer entry, Profile → Settings → Delete Account |
+| Android status-bar/header behavior | Source fix present; physical device untested | Removed duplicate app-drawn stripe and phone top border; retained root safe-area insets and system status bar |
+| Preference persistence | Service tests passed; reported device failure not reproduced | The earlier read-only Supabase check found the expected table/columns, own-row RLS, and authenticated update grants; no authenticated device session was available to capture the original failing request/status |
+| Ruby scroll behavior | Helper/source regression passed | Browser demo cannot show chat history; authenticated saved-history behavior needs an account-backed app session |
+| Pinned retailer storage | Unit and migration-policy checks passed | Migration is local and unapplied; the UI clearly reports this and leaves pin actions unavailable until applied |
+| Delete-account request | Unit and browser routing checks passed | In-app flow uses warning, separate acknowledgement, account-email confirmation, and a mail request; account deletion itself is not performed |
+| iOS build / native scanner | Not tested | Requires macOS, Xcode, and the separately approved iOS dependency migration |
+| Android APK / physical Samsung rendering | Pending GitHub Actions for this commit and device installation | A successful CI build must not be interpreted as physical-screen validation |
+| Real retailer verification, live payment, or external feed | Not available or tested | No provider integration was added or claimed |
+
+The original `Mockup.html` remains preserved. The local demo was used only for
+UI/navigation inspection; no real user, preference, or card data was modified.
+The favorites migration was not deployed and no production services were
+changed.

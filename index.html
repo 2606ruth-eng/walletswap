@@ -178,6 +178,15 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .pw .input{padding-right:48px}
 .pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:8px;color:var(--muted);border-radius:10px}
 .brand-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.retailer-sections{display:grid;gap:14px;margin:12px 0}
+.retailer-section h3{margin:0 2px 7px;font-size:13px;color:var(--muted);font-weight:700}
+.retailer-item{position:relative;min-width:0}
+.retailer-item .bt{width:100%;height:100%;min-height:84px}
+.retailer-pin{position:absolute;top:3px;right:3px;width:25px;height:25px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:15px;line-height:1}
+.retailer-pin[aria-pressed="true"]{color:var(--brand-text);border-color:var(--brand)}
+.retailer-search{margin:4px 0 10px}
+.retailer-status{margin:8px 2px;font-size:12px;color:var(--muted)}
+.retailer-manual{margin-top:8px}
 .bt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border-radius:14px;background:var(--surface);
   border:1.5px solid var(--line);font-size:12.5px;font-weight:600}
 .bt .tile{width:34px;height:34px;font-size:14px;border-radius:10px}
@@ -342,12 +351,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
   .nav-r .txt.hide-sm{display:none}
 }
 
-/* walletswap brand stripe (from the poster) */
-body::before{content:"";position:fixed;left:0;right:0;top:0;height:6px;background:var(--brand);z-index:50}
+/* Keep the poster stripe on public pages; the native app uses the system status bar. */
+body:not(.in-app)::before{content:"";position:fixed;left:0;right:0;top:0;height:6px;background:var(--brand);z-index:50}
 .home{padding-top:6px}
 .auth{padding-top:30px}
-.phone{border-top:6px solid var(--brand)}
-@media (min-width:700px) and (min-height:640px){ body.in-app::before{display:none} }
+body.in-app::before{display:none}
+.phone{border-top:0}
 .btn.primary:hover{box-shadow:0 0 0 3px var(--brand-soft)}
 .sec-h .meta:hover{color:var(--brand-text)}
 .hero h1{max-width:12ch}
@@ -380,6 +389,18 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:6px;backgroun
 .ruby-disclaimer{text-align:center;margin:8px 0 0}
 .ruby-top button:disabled,.ruby-form button:disabled{opacity:.5;pointer-events:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.home-help{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--ink);flex:none}
+.tour-backdrop{position:fixed;inset:0;z-index:110;background:var(--scrim);display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.tour-dialog{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.24)}
+.tour-head{display:flex;align-items:center;gap:12px}
+.tour-head h2{flex:1;margin:0;font-size:22px}
+.tour-progress{font-size:13px;color:var(--muted);margin:14px 0 8px}
+.tour-dialog h3{margin:0 0 8px;font-size:20px}
+.tour-dialog p{color:var(--ink2);line-height:1.55}
+.tour-actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}
+.settings-intro{margin:0 0 16px;color:var(--muted)}
+.deletion-warning{padding:14px;border:1px solid var(--danger);border-radius:14px;background:color-mix(in srgb,var(--danger) 6%,var(--surface));margin:12px 0}
+.deletion-form{display:grid;gap:12px}
 </style></head><body><div id="root"></div><div id="toasts" aria-live="polite"></div><script type="module">
 "use strict";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
@@ -391,12 +412,17 @@ import { applyRecognizedDetails, createCardCapture, safeCardSnapshot, validateRe
 import { hasNativeCredentialVault, loadCardCredentials, protectCardCredentials, removeCardCredentials, storeCardCredentials } from "./src/credential-vault.js";
 import { authCallbackStatusFromUrl, classifyAuthCallbackError } from "./src/services/auth-callback.js";
 import { AUTH_CALLBACK_PATH, AUTH_RECOVERY_CALLBACK_PATH } from "./src/services/auth-redirect.js";
-import { deleteCurrentAccount, getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
+import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
 import { loadRemoteAccount } from "./src/services/app-data.js";
 import { createListing, cancelListing, getPublicListings, prepareSimulatedPurchase, updateListing } from "./src/services/marketplace.js";
 import { importLegacyWallet } from "./src/services/migration.js";
-import { markNotificationRead, reportCardActivityProblem, requestLocalNotificationPermission, showStoredNotification, subscribeToNotifications, syncExpiryReminders, updateNotificationPreferences } from "./src/services/notifications.js";
+import { markNotificationRead, notificationPreferenceErrorMessage, reportCardActivityProblem, requestLocalNotificationPermission, showStoredNotification, subscribeToNotifications, syncExpiryReminders, updateNotificationPreferences } from "./src/services/notifications.js";
 import { supabase, supabaseConfigError, supabaseConfigured } from "./src/services/supabase.js";
+import { buildDeletionRequestUrl } from "./src/account-deletion.js";
+import { HELP_STEPS } from "./src/help-tour.js";
+import { isNearScrollEnd, scrollToLatest } from "./src/ruby-scroll.js";
+import { customRetailerId, normalizeRetailerSelection, rankRecentlyUsedRetailers } from "./src/retailer-preferences.js";
+import { getFavoriteRetailers, retailerFavoritesErrorMessage, setFavoriteRetailer } from "./src/services/retailer-favorites.js";
 import { createRubyConversation, deleteRubyConversation, getRubyMessages, listRubyConversations, rubyErrorMessage, sendRubyMessage } from "./src/services/ruby.js";
 import { addWalletCard, adjustReportedBalance, archiveWalletCard, recordCardPurchase, updateWalletCard } from "./src/services/wallet.js";
 /* ================= utilities ================= */
@@ -469,6 +495,7 @@ const P = {
   lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   dollar: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.8c-1 .9-1.9 1.3-1.9 2.7M12 17h.01"/>',
   undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>'
 };
@@ -839,7 +866,7 @@ function seedDemoData() {
 }
 /* ================= ui state & router ================= */
 const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "", captureMethod: "", captureConfirmed: false });
-const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
+const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0 }, deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
 const cardCapture = createCardCapture({
   camera: {
     checkPermissions: () => Camera.checkPermissions(),
@@ -909,6 +936,8 @@ function render() {
     html = appShell(a, r, same);
   } else if (r.path === AUTH_CALLBACK_PATH || r.path === AUTH_RECOVERY_CALLBACK_PATH) {
     html = vAuthCallback(ui.authCallback, r.path === AUTH_RECOVERY_CALLBACK_PATH);
+  } else if (r.path === "/account-deletion") {
+    html = vPublicDeletion();
   } else if (["login", "signup", "reset-password", "update-password"].includes(r.parts[0])) {
     if (a && ["login", "signup"].includes(r.parts[0])) { location.replace("#/app/wallet"); return; }
     html = vAuth(r.parts[0]);
@@ -917,10 +946,6 @@ function render() {
   }
   root.innerHTML = html;
   if (r.parts[0] === "app" && r.parts[1] === "ruby" && a && !a.demo && supabaseConfigured) void loadRubyHistory(a.id);
-  if (r.parts[0] === "app" && r.parts[1] === "ruby") {
-    const messages = $("#ruby-messages");
-    if (messages) messages.scrollTop = messages.scrollHeight;
-  }
   document.body.classList.toggle("in-app", r.parts[0] === "app");
   ui.lastPath = r.path; ui.sheetNew = false;
 
@@ -929,6 +954,9 @@ function render() {
     const sh2 = $(".sheet"); if (sh2 && sh) sh2.scrollTop = sst;
     document.querySelectorAll("[data-keep-x]").forEach(el => { if (keepX[el.dataset.keepX] != null) el.scrollLeft = keepX[el.dataset.keepX]; });
   }
+  if (r.parts[0] === "app" && r.parts[1] === "ruby" && ui.ruby.followLatest) {
+    requestAnimationFrame(() => scrollToLatest($("#screen"), "auto"));
+  }
   if (fid) {
     const el = document.getElementById(fid);
     if (el) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) { } }
@@ -936,13 +964,14 @@ function render() {
     const first = $(".sheet input, .sheet button.btn"); if (first) first.focus({ preventScroll: true });
   }
   ui.focusSheet = false;
-  const titles = { wallet: "Wallet", cards: "All cards", card: "Card", add: "Add a card", market: "Marketplace", activity: "Activity", profile: "Profile", ruby: "Ruby" };
+  const titles = { wallet: "Wallet", cards: "All cards", card: "Card", add: "Add a card", market: "Marketplace", activity: "Activity", profile: "Profile", settings: "Settings", ruby: "Ruby" };
   document.title = r.parts[0] === "app" ? `${titles[r.parts[1] || "wallet"] || "Wallet"} – walletswap`
     : r.parts[0] === "login" ? "Log in – walletswap"
       : r.parts[0] === "signup" ? "Create account – walletswap"
         : r.parts[0] === "reset-password" ? "Reset password – walletswap"
           : r.parts[0] === "update-password" ? "Update password – walletswap"
             : r.path === AUTH_CALLBACK_PATH || r.path === AUTH_RECOVERY_CALLBACK_PATH ? "Email confirmation – walletswap"
+              : r.path === "/account-deletion" ? "Account deletion – walletswap"
             : "walletswap – buy, sell, and swap gift cards";
 }
 
@@ -957,6 +986,7 @@ function appShell(a, r, same) {
     case "market": body = vMarket(a, r); break;
     case "activity": body = vActivity(a); break;
     case "profile": body = vProfile(a); break;
+    case "settings": body = vSettings(a, r.parts.slice(2)); tab = "profile"; break;
     case "ruby": body = vRuby(a); tab = "wallet"; break;
     default: body = vWallet(a); tab = "wallet";
   }
@@ -1124,10 +1154,68 @@ function vCard(a, id) {
 }
 
 /* ================= add card ================= */
+function retailerButton(retailer, name, selected, pinned, canPin) {
+  const brand = BRANDS.find(item => item.id === retailer);
+  const isOther = retailer === "other";
+  const custom = !brand && !isOther;
+  const favorite = pinned.some(item => item.retailer === retailer);
+  const tileMarkup = brand ? tile(brand) : `<span class="tile" style="${cvars(OTHER)}">${icon(custom ? "store" : "plus", 16)}</span>`;
+  const label = custom ? name : (brand?.name || "Other");
+  return `<div class="retailer-item">
+    <button type="button" class="bt${selected ? " on" : ""}" role="radio" aria-checked="${selected}" data-act="add-brand" data-v="${esc(isOther ? "other" : retailer)}" ${custom ? `data-retailer-name="${esc(name)}"` : ""}>${tileMarkup}<span>${esc(label)}</span></button>
+    ${!isOther && canPin ? `<button type="button" class="retailer-pin" data-act="retailer-pin" data-retailer="${esc(retailer)}" data-name="${esc(label)}" aria-label="${favorite ? "Unpin" : "Pin"} ${esc(label)}" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button>` : ""}
+  </div>`;
+}
+function retailerPickerMarkup(a, f) {
+  const state = ui.retailers;
+  const query = state.search.trim().toLowerCase();
+  const pinned = !a.demo && state.userId === a.id ? state.pinned.map(item => ({
+    retailer: item.retailer,
+    name: item.display_name || BRANDS.find(brand => brand.id === item.retailer)?.name || item.retailer,
+  })) : [];
+  const recent = rankRecentlyUsedRetailers(a.data.activity).map(item => {
+    const known = BRANDS.find(brand => brand.id === item.retailer);
+    return { retailer: item.retailer, name: item.displayName || known?.name || item.retailer };
+  });
+  const pinnedIds = new Set(pinned.map(item => item.retailer));
+  const recentItems = recent.filter(item => !pinnedIds.has(item.retailer));
+  const usedIds = new Set([...pinned, ...recentItems].map(item => item.retailer));
+  const browse = BRANDS.filter(item => !usedIds.has(item.id)).map(item => ({ retailer: item.id, name: item.name }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const all = [...pinned, ...recentItems, ...browse].filter((item, index, list) => list.findIndex(other => other.retailer === item.retailer) === index);
+  const canPin = !!(supabaseConfigured && !a.demo && state.available && !state.loading);
+  const status = state.loading ? `<p class="retailer-status" role="status">Loading your pinned retailers…</p>`
+    : state.error ? `<p class="retailer-status" role="status">${esc(state.error)}</p>`
+      : a.demo ? `<p class="retailer-status">Sign in to save pinned retailers. Recent and alphabetical choices remain available.</p>` : "";
+  const renderGroup = (title, items) => items.length
+    ? `<section class="retailer-section"><h3>${title}</h3><div class="brand-grid">${items.map(item => retailerButton(item.retailer, item.name, f.brand === item.retailer || (item.retailer.startsWith("custom-") && f.brand === "other" && customRetailerId(f.brandName) === item.retailer), pinned, canPin)).join("")}</div></section>`
+    : "";
+  if (query) {
+    const matches = all.filter(item => item.name.toLowerCase().includes(query) || item.retailer.includes(query));
+    const includeOther = "other".includes(query) || "add a retailer not listed".includes(query);
+    return `${status}<label class="sr-only" for="retailer-search">Search retailers</label><input id="retailer-search" class="input retailer-search" type="search" data-model="retailers.search" data-live="1" placeholder="Search retailers…" value="${esc(state.search)}" autocomplete="off"><div class="brand-grid" role="radiogroup" aria-labelledby="lb-brand">${matches.map(item => retailerButton(item.retailer, item.name, f.brand === item.retailer || (item.retailer.startsWith("custom-") && f.brand === "other" && customRetailerId(f.brandName) === item.retailer), pinned, canPin)).join("")}${includeOther ? retailerButton("other", "Other", f.brand === "other", pinned, false) : ""}</div>${!matches.length && !includeOther ? `<button type="button" class="btn ghost block retailer-manual" data-act="add-custom-retailer" data-name="${esc(state.search)}">Use “${esc(state.search)}” as a retailer</button>` : ""}`;
+  }
+  return `${status}<label class="sr-only" for="retailer-search">Search retailers</label><input id="retailer-search" class="input retailer-search" type="search" data-model="retailers.search" data-live="1" placeholder="Search retailers…" value="${esc(state.search)}" autocomplete="off"><div class="retailer-sections" role="radiogroup" aria-labelledby="lb-brand">${renderGroup("Pinned", pinned)}${renderGroup("Recently used", recentItems)}${renderGroup("Browse retailers", browse)}${retailerButton("other", "Other", f.brand === "other", pinned, false)}</div>`;
+}
+function loadRetailerFavoritesFor(account) {
+  const state = ui.retailers;
+  if (state.userId === account.id && (state.loading || state.available || state.error)) return;
+  ui.retailers = { userId: account.id, loading: true, available: false, pinned: [], error: "", search: state.search };
+  void getFavoriteRetailers().then(pinned => {
+    if (acct()?.id !== account.id || ui.retailers.userId !== account.id) return;
+    ui.retailers = { ...ui.retailers, loading: false, available: true, pinned };
+    render();
+  }).catch(error => {
+    if (acct()?.id !== account.id || ui.retailers.userId !== account.id) return;
+    ui.retailers = { ...ui.retailers, loading: false, available: false, pinned: [], error: retailerFavoritesErrorMessage(error) };
+    render();
+  });
+}
 function vAdd(a) {
   const f = ui.add;
   const capture = ui.capture;
   const captureBusy = ["scanning", "installing", "taking-photo", "recognizing"].includes(capture.status);
+  if (a && !a.demo && supabaseConfigured) loadRetailerFavoritesFor(a);
   const capturePanel = capture.status === "idle" ? "" : `
     <section class="capture-state" aria-live="polite">
       <p>${esc(capture.message || "Camera capture status")}</p>
@@ -1156,10 +1244,8 @@ function vAdd(a) {
   ${f.captureMethod ? `<div class="capture-confirm"><button class="btn ${f.captureConfirmed ? "primary" : "ghost"} sm" type="button" data-act="capture-confirm">${f.captureConfirmed ? "Details reviewed" : "I reviewed these details"}</button><span>Confirm the retailer, printed face value, expiry, and your remaining balance before saving.</span></div>${fieldErr("captureConfirmed")}` : ""}
   <form data-form="add" novalidate>
     <div class="field"><span id="lb-brand">Store</span>
-      <div class="brand-grid" role="radiogroup" aria-labelledby="lb-brand">
-        ${BRANDS.concat([OTHER]).map(b => `<button type="button" class="bt${f.brand === b.id ? " on" : ""}" role="radio" aria-checked="${f.brand === b.id}" data-act="add-brand" data-v="${b.id}">${b.id === "other" ? `<span class="tile" style="${cvars(b)}">${icon("plus", 16)}</span>` : tile(b)}<span>${esc(b.name)}</span></button>`).join("")}
-      </div>${fieldErr("brand")}</div>
-    ${f.brand === "other" ? `<label class="field"><span>Store name</span><input class="input${bad("brandName")}" id="add-bn" data-model="add.brandName" value="${esc(f.brandName)}" maxlength="30" placeholder="e.g. Local Bookshop" autocomplete="off">${fieldErr("brandName")}</label>` : ""}
+      ${retailerPickerMarkup(a, f)}${fieldErr("brand")}</div>
+    ${f.brand === "other" || f.brand.startsWith("custom-") ? `<label class="field"><span>Store name</span><input class="input${bad("brandName")}" id="add-bn" data-model="add.brandName" value="${esc(f.brandName)}" maxlength="48" placeholder="e.g. Local Bookshop" autocomplete="off">${fieldErr("brandName")}</label>` : ""}
     <label class="field"><span>Card number</span><input class="input num${bad("number")}" id="add-num" data-model="add.number" data-fmt="card" inputmode="numeric" autocomplete="off" placeholder="XXXX XXXX XXXX XXXX" value="${esc(f.number)}">${fieldErr("number")}</label>
     <div class="two">
       <label class="field"><span>PIN (optional)</span><input class="input num${bad("pin")}" id="add-pin" data-model="add.pin" data-fmt="digits" data-max="8" inputmode="numeric" autocomplete="off" placeholder="1234" value="${esc(f.pin)}">${fieldErr("pin")}</label>
@@ -1325,12 +1411,52 @@ function vProfile(a) {
   <p class="group-label">More</p>
   <div class="list">
     <a class="kv" href="#/"><span class="ricon">${icon("home", 18)}</span><span class="k">walletswap home page</span>${icon("right", 18, 'class="chev"')}</a>
+    <a class="kv" href="#/app/settings"><span class="ricon">${icon("lock", 18)}</span><span class="k">Settings</span>${icon("right", 18, 'class="chev"')}</a>
     ${a.demo ? kv("refresh", "Reset demo data", "", "reset") : supabaseConfigured ? `<button class="kv" data-act="sheet" data-s="import-local"><span class="ricon">${icon("refresh", 18)}</span><span class="k">Import local wallet</span>${icon("right", 18, 'class="chev"')}</button>` : ""}
   </div>
   <button class="btn danger block" style="margin-top:22px" data-act="sheet" data-s="logout">${icon("logout", 19)}Sign out</button>
-  ${a.demo ? "" : `<button class="btn block" style="margin-top:6px;color:var(--muted);font-weight:600" data-act="sheet" data-s="delete">Delete account</button>`}
   <div class="p-foot"><span class="logo xs">${LOGO(20)}</span><p>${TAGLINE}</p></div>
   <p class="foot-note">${!a.demo && supabaseConfigured ? "Wallet data synced to your account. Gift-card credentials remain on this device." : Store.local ? "Demo wallet saved in this browser" : "Changes last until you close this page"}</p>`;
+}
+
+function vSettings(a, path) {
+  const isDeletion = path[0] === "account" && path[1] === "delete";
+  if (!isDeletion) {
+    return `<div class="top">${backBtn("/app/profile", "Back to profile")}<h1>Settings</h1></div>
+      <p class="settings-intro">Manage account and privacy options. Notification preferences are in your Profile.</p>
+      <p class="group-label">Account</p><div class="list">
+        <a class="kv" href="#/app/settings/account/delete"><span class="ricon">${icon("trash", 18)}</span><span class="k">Delete Account</span><span class="v">Request deletion</span>${icon("right", 18, 'class="chev"')}</a>
+      </div>
+      <p class="hint">Account deletion requests are reviewed by support. WalletSwap will confirm when processing is complete.</p>`;
+  }
+  if (a.demo) {
+    return `<div class="top">${backBtn("/app/settings", "Back to settings")}<h1>Delete account</h1></div>
+      <div class="notice">The demo account is not a real WalletSwap account. To request deletion of a real account, sign in and open Settings → Account → Delete Account.</div>`;
+  }
+  return `<div class="top">${backBtn("/app/settings", "Back to settings")}<h1>Delete account</h1></div>
+    <div class="deletion-warning" role="note"><b>This action cannot be undone.</b>
+      <p>Request deletion of your WalletSwap account and associated profile, wallet, and activity data. Some records may need to be retained where required by law or to resolve disputes. Support will explain any applicable retention.</p>
+      <p>Opening or submitting this request does not delete your account. Support must process the request and confirm completion.</p>
+    </div>
+    ${!ui.deletion.confirmed ? `<label class="pref"><input type="checkbox" data-model="deletion.acknowledged" data-live="1" ${ui.deletion.acknowledged ? "checked" : ""}><span class="rbody">I understand this starts a deletion request and does not immediately delete my account.</span></label>
+      <button class="btn danger block" type="button" data-act="deletion-continue" ${ui.deletion.acknowledged ? "" : "disabled"}>Continue to request</button>` : `<form class="deletion-form" data-form="deletion-request" novalidate>
+      <p>For a separate confirmation, enter the email address on this WalletSwap account:</p>
+      <label class="field"><span>Account email</span><input class="input${bad("deletionEmail")}" data-model="deletion.email" type="email" autocomplete="email" value="${esc(ui.deletion.email)}">${fieldErr("deletionEmail")}</label>
+      <button class="btn danger block" type="submit">Open deletion request email</button>
+      <p class="hint">This opens your email app addressed to admin@walletswap.org. You must send the message; support will confirm any deletion.</p>
+    </form>`}`;
+}
+
+function vPublicDeletion() {
+  return `<div class="auth"><div class="auth-in">
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a><a class="link" href="#/">Back to home</a></div>
+    <h1>Request account deletion</h1>
+    <p class="lead">To request deletion of your WalletSwap account and associated personal data, email admin@walletswap.org from the address associated with the account.</p>
+    <div class="deletion-warning"><b>Important</b><p>This is a request, not an instant deletion. Support will confirm processing and explain any records that must be retained by law or to resolve disputes.</p></div>
+    <label class="field"><span>Account email</span><input class="input" type="email" data-model="deletion.email" autocomplete="email" value="${esc(ui.deletion.email)}" placeholder="you@example.com"></label>
+    <button class="btn danger block" type="button" data-act="public-deletion-request">Open deletion request email</button>
+    <p class="foot-note">The public request route for app-store account-deletion guidance.</p>
+  </div></div>`;
 }
 
 /* ================= auth ================= */
@@ -1406,9 +1532,11 @@ function vHome(a) {
   ];
   const cta = a ? `<a class="btn primary" href="#/app/wallet">Open my wallet</a>`
     : `<a class="btn primary" href="#/signup">Create a free account</a><button class="btn ghost" data-act="demo-login">Try the demo</button>`;
+  const tutorial = ui.tutorial.open ? renderTutorial() : "";
   return `<div class="home">
   <header class="wrap nav"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(34)}</a>
     <nav class="nav-r"><button class="txt hide-sm" data-act="scroll" data-to="how">How it works</button>
+      <button class="home-help" type="button" data-act="tutorial-open" aria-label="Open WalletSwap help tutorial">${icon("help", 19)}</button>
       ${a ? `<a class="btn primary sm" href="#/app/wallet">Open my wallet</a>` : `<a class="txt" href="#/login">Log in</a><a class="btn primary sm" href="#/signup">Get started</a>`}</nav></header>
   <section class="wrap hero">
     <div>
@@ -1433,7 +1561,20 @@ function vHome(a) {
     <div class="list" aria-label="Example listings">${sample.map(l => listingRow(l, false)).join("")}</div>
   </div></section>
   <section class="wrap closing"><h2>Stop leaving money on gift cards.</h2><div class="cta" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${cta}</div></section>
-  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span></div></footer>
+  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a></div></footer>
+  ${tutorial}</div>`;
+}
+function renderTutorial() {
+  const step = HELP_STEPS[ui.tutorial.step] || HELP_STEPS[0];
+  return `<div class="tour-backdrop" role="presentation" data-act="tutorial-backdrop">
+    <section class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
+      <div class="tour-head"><h2 id="tour-title">WalletSwap quick tour</h2><button class="icon-btn" type="button" data-act="tutorial-close" aria-label="Close tutorial">${icon("x", 18)}</button></div>
+      <p class="tour-progress">Step ${ui.tutorial.step + 1} of ${HELP_STEPS.length}</p>
+      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>
+      <div class="tour-actions"><button class="btn ghost sm" type="button" data-act="tutorial-back" ${ui.tutorial.step === 0 ? "disabled" : ""}>Back</button>
+        <button class="btn ghost sm" type="button" data-act="tutorial-skip">Skip tour</button>
+        <button class="btn primary sm" type="button" data-act="tutorial-next">${ui.tutorial.step === HELP_STEPS.length - 1 ? "Finish" : "Next"}</button></div>
+    </section>
   </div>`;
 }
 /* ================= sheets ================= */
@@ -1491,8 +1632,6 @@ function sheetHtml(a) {
     case "remove": return confirmSheet("Remove this card?", `The ${esc(brandName(c))} card${c.balance > 0 ? ` with ${money(c.balance)} left` : ""} will be deleted from your wallet${c.status === "listed" ? " and the marketplace" : ""}. This can't be undone.`, "Remove card", "remove", true);
     case "logout": return confirmSheet("Sign out of walletswap?", "Your cards stay saved. Log in again any time to see them.", "Sign out", "logout", true);
     case "reset": return confirmSheet(a.demo ? "Reset demo data?" : "Clear your wallet?", a.demo ? "Cards, activity and listings go back to how the demo started." : "All cards, activity and listings are removed. Your account stays.", a.demo ? "Reset demo data" : "Clear wallet", "reset", true);
-    case "delete": return confirmSheet("Delete your account?", "Your account, cards and history are permanently deleted.", "Delete account", "delete", true);
-
     case "buy": {
       const l = d.market.find(x => x.id === s.id);
       if (!l) return sheetWrap("Listing unavailable", `<button class="btn primary block" data-act="close">Back to marketplace</button>`, "This card was just sold to someone else.");
@@ -1600,7 +1739,9 @@ function resetUi() {
     sheet: null, q: "", bf: "all", sort: "discount", af: "all", cf: "active",
     add: blankAdd(), f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "",
     authPendingEmail: "", showPw: false,
-    ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", mode: "unknown" },
+    retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" },
+    tutorial: { open: false, step: 0 }, deletion: { acknowledged: false, confirmed: false, email: "" },
+    ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", mode: "unknown", followLatest: true },
   });
 }
 function signIn(a, msg) {
@@ -1653,6 +1794,7 @@ const ACTIONS = {
     chat.messages = [];
     chat.error = "";
     chat.retryMessage = "";
+    chat.followLatest = true;
     render();
   },
   "ruby-open": ds => { void openRubyConversation(ds.id); },
@@ -1666,6 +1808,21 @@ const ACTIONS = {
   "ruby-quick": ds => { void sendRubyTurn(ds.v); },
   "ruby-retry": () => { void sendRubyTurn(ui.ruby.retryMessage); },
   "ruby-reload": () => { void reloadRubyHistory(); },
+  "tutorial-open": () => { ui.tutorial = { open: true, step: 0 }; render(); },
+  "tutorial-close": () => { ui.tutorial.open = false; render(); },
+  "tutorial-skip": () => { ui.tutorial.open = false; render(); },
+  "tutorial-back": () => { ui.tutorial.step = Math.max(0, ui.tutorial.step - 1); render(); },
+  "tutorial-next": () => {
+    if (ui.tutorial.step >= HELP_STEPS.length - 1) ui.tutorial.open = false;
+    else ui.tutorial.step += 1;
+    render();
+  },
+  "tutorial-backdrop": (ds, el, e) => { if (e.target === el) { ui.tutorial.open = false; render(); } },
+  "deletion-continue": () => { if (ui.deletion.acknowledged) { ui.deletion.confirmed = true; render(); } },
+  "public-deletion-request": () => {
+    try { window.location.href = buildDeletionRequestUrl(ui.deletion.email); }
+    catch (error) { toast(error.message); }
+  },
   scrim: (ds, el, e) => { if (e.target === el) closeSheet(); },
   sheet: ds => openSheet(ds.s, { id: ds.id, then: ds.then }),
   "toggle-hide": () => { const d = acct().data; d.prefs.hide = !d.prefs.hide; commit(); },
@@ -1677,7 +1834,44 @@ const ACTIONS = {
     const fallback = () => { try { const t = document.createElement("textarea"); t.value = text; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); const ok = document.execCommand("copy"); t.remove(); toast(ok ? label : "Copy isn't available here. Tap the eye to show it instead."); } catch (e) { toast("Copy isn't available here. Tap the eye to show it instead."); } };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(label), fallback); else fallback();
   },
-  "add-brand": ds => { ui.add.brand = ds.v; ui.add.captureConfirmed = false; delete ui.errs.brand; render(); },
+  "add-brand": ds => {
+    ui.add.brand = ds.v;
+    ui.add.brandName = ds.v.startsWith("custom-") ? String(ds.retailerName || "").trim() : "";
+    ui.add.captureConfirmed = false;
+    delete ui.errs.brand;
+    delete ui.errs.brandName;
+    render();
+  },
+  "add-custom-retailer": ds => {
+    const name = String(ds.name || "").trim().slice(0, 48);
+    const retailer = customRetailerId(name);
+    if (!retailer || name.length < 2) { toast("Enter a retailer name with at least two characters."); return; }
+    ui.add.brand = retailer;
+    ui.add.brandName = name;
+    ui.add.captureConfirmed = false;
+    ui.retailers.search = "";
+    delete ui.errs.brand;
+    delete ui.errs.brandName;
+    render();
+  },
+  "retailer-pin": async ds => {
+    const a = acct();
+    if (!a || a.demo || !supabaseConfigured || !ui.retailers.available) {
+      toast(ui.retailers.error || "Sign in and apply the favorites migration to pin retailers.");
+      return;
+    }
+    const pinned = ui.retailers.pinned.some(item => item.retailer === ds.retailer);
+    try {
+      await setFavoriteRetailer({ retailer: ds.retailer, displayName: ds.name, pinned: !pinned });
+      ui.retailers.pinned = pinned
+        ? ui.retailers.pinned.filter(item => item.retailer !== ds.retailer)
+        : [...ui.retailers.pinned, { retailer: ds.retailer, display_name: ds.name }];
+      render();
+      toast(pinned ? `${ds.name} removed from pinned retailers.` : `${ds.name} pinned.`);
+    } catch (error) {
+      toast(retailerFavoritesErrorMessage(error));
+    }
+  },
   "add-type": ds => { ui.add.type = ds.v; render(); },
   "f-type": ds => { ui.f.type = ds.v; render(); },
   "cards-filter": ds => { ui.cf = ds.v; render(); },
@@ -1703,18 +1897,30 @@ const ACTIONS = {
       weeklySummary: "weekly_summary_enabled",
     };
     if (columns[ds.k]) {
-      if (supabaseConfigured && !acct().demo) await updateNotificationPreferences({ [columns[ds.k]]: next });
+      if (supabaseConfigured && !acct().demo) {
+        try { await updateNotificationPreferences({ [columns[ds.k]]: next }); }
+        catch (error) { toast(notificationPreferenceErrorMessage(error, navigator.onLine)); return; }
+      }
       if (next && ["cardActivityAlerts", "balanceChangeAlerts", "expiryReminders", "weeklySummary", "saleAlerts"].includes(ds.k)) {
-        const permission = await requestLocalNotificationPermission();
-        if (permission !== "granted") toast(permission === "denied"
-          ? "Device notifications are off; WalletSwap alerts remain available in your notification list."
-          : "Device notifications aren't available here; WalletSwap alerts remain in your notification list.");
+        try {
+          const permission = await requestLocalNotificationPermission();
+          if (permission !== "granted") toast(permission === "denied"
+            ? "Device notifications are off; WalletSwap alerts remain available in your notification list."
+            : "Device notifications aren't available here; WalletSwap alerts remain in your notification list.");
+        } catch {
+          toast("This preference was saved, but device notification permission could not be checked.");
+        }
       }
       if (ds.k === "expiryReminders" && next) {
-        const result = await syncExpiryReminders(d.cards, true);
-        if (!result.supported) toast("Scheduled expiry alerts require the WalletSwap mobile app.");
+        try {
+          const result = await syncExpiryReminders(d.cards, true);
+          if (!result.supported) toast("Scheduled expiry alerts require the WalletSwap mobile app.");
+        } catch {
+          toast("This preference was saved, but expiry reminders could not be scheduled on this device.");
+        }
       } else if (ds.k === "expiryReminders" && !next) {
-        await syncExpiryReminders(d.cards, false);
+        try { await syncExpiryReminders(d.cards, false); }
+        catch { toast("This preference was saved, but existing device reminders could not be removed."); }
       }
     }
     d.prefs[ds.k] = next; commit();
@@ -1796,15 +2002,6 @@ const ACTIONS = {
       if (hasNativeCredentialVault()) await protectCardCredentials(a.data.cards);
       ui.sheet = null; ui.reveal = {}; commit(); toast(a.demo ? "Demo data reset" : "Wallet cleared");
     }
-    else if (ds.k === "delete") {
-      try { for (const card of d.cards) await removeCardCredentials(card.id); } catch { toast("Credentials couldn't be removed securely. The account was not deleted."); return; }
-      if (supabaseConfigured && !a.demo) {
-        await deleteCurrentAccount();
-        clearLocalSession("Account deleted");
-        return;
-      }
-      delete S.accounts[a.email]; signOut("Account deleted");
-    }
     else if (ds.k === "import-local") {
       ui.sheet.idempotencyKey = ui.sheet.idempotencyKey || crypto.randomUUID();
       const result = await importLegacyWallet(a.email, { confirmed: true, idempotencyKey: ui.sheet.idempotencyKey });
@@ -1826,9 +2023,10 @@ const ACTIONS = {
     });
   },
   "capture-apply-scan": () => {
-    if (ui.capture.brand) ui.add.brand = ui.capture.brand;
+    if (ui.capture.brand) { ui.add.brand = ui.capture.brand; ui.add.brandName = ""; }
     ui.add.captureMethod = "barcode";
     ui.add.captureConfirmed = false;
+    ui.retailers.search = "";
     render();
   },
   "capture-apply-ocr": () => {
@@ -1889,6 +2087,7 @@ async function loadRubyHistory(userId) {
 async function openRubyConversation(conversationId) {
   const chat = ui.ruby;
   if (chat.busy || chat.loading || conversationId === chat.conversationId) return;
+  chat.followLatest = true;
   chat.loading = true;
   chat.conversationId = conversationId;
   chat.messages = [];
@@ -1953,6 +2152,7 @@ async function sendRubyTurn(value) {
   const chat = ui.ruby;
   const message = String(value || "").trim();
   if (!message || chat.busy || chat.loading) return;
+  chat.followLatest = true;
   chat.busy = true;
   chat.error = "";
   chat.draft = "";
@@ -2075,7 +2275,7 @@ const FORMS = {
     const a = acct(), d = a.data, f = ui.add, e = {};
     if (f.captureMethod && !f.captureConfirmed) e.captureConfirmed = "Review and confirm the captured suggestions before saving.";
     if (!f.brand) e.brand = "Pick the store this card is for.";
-    if (f.brand === "other" && !f.brandName.trim()) e.brandName = "Enter the store name.";
+    if ((f.brand === "other" || f.brand.startsWith("custom-")) && !f.brandName.trim()) e.brandName = "Enter the store name.";
     const num = digits(f.number);
     if (num.length < 8 || num.length > 19) e.number = "Card numbers are 8–19 digits.";
     else if (d.cards.some(c => digits(c.number) === num && c.brand === f.brand)) e.number = "This card is already in your wallet.";
@@ -2088,7 +2288,7 @@ const FORMS = {
     const bal = parseMoney(f.balance);
     if (f.expires) { const t = new Date(f.expires + "T23:59:59"); if (isNaN(t) || t < new Date()) e.expires = "This date has passed."; }
     if (Object.keys(e).length) return fail(e);
-    const card = { id: uid("c"), brand: f.brand, brandName: f.brand === "other" ? f.brandName.trim() : "", number: num, pin: f.pin, last4: last4(num), expires: f.expires || "", original: orig, balance: r2(bal), balanceVerification: "user-reported", type: f.type, nickname: f.nickname.trim(), source: "added", paid: null, addedAt: Date.now(), status: "active", listing: null };
+    const card = { id: uid("c"), brand: f.brand, brandName: f.brand === "other" || f.brand.startsWith("custom-") ? f.brandName.trim() : "", number: num, pin: f.pin, last4: last4(num), expires: f.expires || "", original: orig, balance: r2(bal), balanceVerification: "user-reported", type: f.type, nickname: f.nickname.trim(), source: "added", paid: null, addedAt: Date.now(), status: "active", listing: null };
     if (f.captureMethod === "photo" && !(await cardCapture.discardPhoto())) {
       e.number = "The temporary photo couldn't be securely discarded; the card wasn't saved.";
       return fail(e);
@@ -2116,7 +2316,7 @@ const FORMS = {
     }
     d.cards.unshift(card);
     log(d, "added", card, card.balance, "Added manually");
-    ui.add = blankAdd(); ui.errs = {}; ui.capture = { status: "idle" };
+    ui.add = blankAdd(); ui.errs = {}; ui.capture = { status: "idle" }; ui.retailers.search = "";
     if (supabaseConfigured && !a.demo) await refreshRemoteAccount();
     else Store.save();
     go("/app/wallet");
@@ -2256,6 +2456,15 @@ const FORMS = {
     a.salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
     a.hash = await hashPw(f.next, a.salt);
     ui.sheet = null; commit(); toast("Password updated");
+  },
+  "deletion-request"() {
+    const a = acct();
+    const email = String(ui.deletion.email || "").trim().toLowerCase();
+    if (!a || a.demo || !supabaseConfigured || !validEmail(email) || email !== String(a.email || "").trim().toLowerCase()) {
+      return fail({ deletionEmail: "Enter the email address associated with this signed-in account." });
+    }
+    try { window.location.href = buildDeletionRequestUrl(email); }
+    catch (error) { return fail({ deletionEmail: error.message }); }
   }
 };
 
@@ -2281,7 +2490,7 @@ document.addEventListener("click", e => {
 function onInput(e) {
   const el = e.target, m = el.dataset && el.dataset.model;
   if (!m) return;
-  let v = el.value;
+  let v = el.type === "checkbox" ? el.checked : el.value;
   const fmt = el.dataset.fmt;
   if (fmt === "card") v = groupNum(v);
   else if (fmt === "digits") v = digits(v).slice(0, +(el.dataset.max || 19));
@@ -2311,10 +2520,27 @@ document.addEventListener("submit", async e => {
     catch (error) { reportOperationError(error, "WalletSwap couldn't save that change. Your data was not intentionally discarded."); }
   }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && ui.sheet) closeSheet(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (ui.tutorial.open) { ui.tutorial.open = false; render(); }
+  else if (ui.sheet) closeSheet();
+});
+document.addEventListener("scroll", e => {
+  if (e.target?.id === "screen" && parseRoute().parts[1] === "ruby") {
+    ui.ruby.followLatest = isNearScrollEnd(e.target);
+  }
+}, true);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", () => {
+  if (parseRoute().parts[1] === "ruby" && ui.ruby.followLatest) {
+    requestAnimationFrame(() => scrollToLatest($("#screen"), "auto"));
+  }
+});
 window.addEventListener("hashchange", () => {
   ui.sheet = null; ui.errs = {}; ui.authErr = ""; ui.authNotice = "";
   const r = parseRoute();
+  if (r.path !== "/") ui.tutorial.open = false;
+  if (r.path === "/app/ruby" && ui.lastPath !== "/app/ruby") ui.ruby.followLatest = true;
+  if (!r.path.startsWith("/app/settings/account/delete")) ui.deletion = { confirmed: false, acknowledged: false, email: "" };
   if (r.path !== AUTH_CALLBACK_PATH && r.path !== AUTH_RECOVERY_CALLBACK_PATH) ui.authCallback = { status: "idle" };
   if (ui.lastPath === "/app/add" && r.path !== "/app/add") {
     void cardCapture.discardPhoto().then(ok => {
