@@ -1,6 +1,6 @@
 import { requireSupabase } from "./supabase.js";
 
-const CARD_COLUMNS = "id,owner_id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at,last_activity_at,archived_at,created_at,updated_at";
+const CARD_COLUMNS = "id,owner_id,retailer,nickname,card_type,currency,original_value,reported_balance,expiration_date,masked_identifier,verification_status,verification_source,verified_at,balance_verification_status,latest_provider_balance_minor,latest_provider_currency,latest_provider_verified_at,verification_provider_id,last_verification_attempt_at,verification_error_category,last_balance_observed_at,last_activity_at,archived_at,created_at,updated_at";
 
 export function dollarsToCents(value) {
   const raw = String(value ?? "").trim();
@@ -33,10 +33,19 @@ export function mapWalletCard(row) {
     currency: row.currency,
     type: row.card_type === "physical" ? "Physical" : "Digital",
     expires: row.expiration_date || "",
-    balanceVerification: row.verification_status === "verified" ? "verified" : "user-reported",
-    verificationStatus: row.verification_status,
+    balanceVerification: row.balance_verification_status === "PROVIDER_VERIFIED" || row.verification_status === "verified" ? "verified" : "user-reported",
+    verificationStatus: row.balance_verification_status || row.verification_status,
     verificationSource: row.verification_source,
     verifiedAt: row.verified_at,
+    latestProviderBalance: row.latest_provider_balance_minor === null || row.latest_provider_balance_minor === undefined
+      ? null
+      : Number(row.latest_provider_balance_minor) / 100,
+    latestProviderCurrency: row.latest_provider_currency || "",
+    latestProviderVerifiedAt: row.latest_provider_verified_at || "",
+    verificationProvider: row.verification_provider_id || "",
+    lastVerificationAttemptAt: row.last_verification_attempt_at || "",
+    verificationErrorCategory: row.verification_error_category || "",
+    lastBalanceObservedAt: row.last_balance_observed_at || "",
     addedAt: new Date(row.created_at).getTime(),
     lastActivityAt: row.last_activity_at,
     status: row.archived_at ? "archived" : "active",
@@ -170,4 +179,15 @@ export async function getCardActivity(cardId) {
   const { data, error } = await query;
   if (error) throw error;
   return data || [];
+}
+
+export async function requestCardBalanceCheck(cardId) {
+  if (typeof cardId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cardId)) {
+    throw new Error("Card reference is invalid.");
+  }
+  const { data, error } = await requireSupabase().functions.invoke("check-card-balance", {
+    body: { card_id: cardId, request_id: crypto.randomUUID(), consent: true },
+  });
+  if (error) throw error;
+  return data;
 }

@@ -1,0 +1,42 @@
+name: WalletSwap Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug-apk:
+    name: Build unsigned Android debug APK
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || vars.VITE_SUPABASE_PUBLISHED_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+      - run: npm ci
+      - name: Validate public Supabase configuration
+        run: npm run verify:cloud-config
+      - run: npm test
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Assemble debug APK
+        run: bash ./gradlew assembleDebug
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: walletswap-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -49,3 +49,6 @@ verify_jwt = false
 
 [functions.account-delete]
 verify_jwt = false
+
+[functions.check-card-balance]
+verify_jwt = true
