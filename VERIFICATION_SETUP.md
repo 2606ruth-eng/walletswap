@@ -173,8 +173,8 @@ npm.cmd run build
 npx.cmd cap sync android
 ```
 
-For an unsigned debug APK, open the repository's **Actions → WalletSwap
-Android APK → Run workflow** on the desired branch. Download the
-`walletswap-android-debug` artifact from the completed run. It is not a signed
-store release and does not prove physical-device scanning or retailer
+The **WalletSwap CI** workflow produces the unsigned APK. The latest verified
+run is [run #16](https://github.com/2606ruth-eng/walletswap/actions/runs/40775888945);
+download its `walletswap-phase1-repairs-debug` artifact. The APK is not a
+signed store release and does not prove physical-device scanning or retailer
 verification.

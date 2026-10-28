@@ -32,6 +32,7 @@ Results are recorded after running the checks from the feature worktree:
 | Deployed endpoint without Authorization | Passed: HTTP 401, missing authorization header |
 | Deployed endpoint with malformed bearer token | Passed: HTTP 401, invalid JWT |
 | Supabase function list | Passed: `check-card-balance` ACTIVE, JWT verification enabled |
+| Android Actions workflow run #16 | Passed: debug APK assembled and uploaded as `walletswap-phase1-repairs-debug` |
 
 ## Coverage added
 
@@ -66,9 +67,9 @@ Results are recorded after running the checks from the feature worktree:
   sandbox balances.
 - The short-lived encrypted credential path required before sending a user's
   card number or security code to any provider.
-- Running the manual Android APK workflow. No APK was built in this session;
-  physical camera, barcode/OCR, retailer browser handoff, and installed APK
-  behavior remain unverified.
+- Physical camera, barcode/OCR, retailer browser handoff, and installed APK
+  behavior remain unverified; the workflow produced an unsigned debug build
+  only.
 
 See [VERIFICATION_SETUP.md](VERIFICATION_SETUP.md) for SQL review, deployment
 gates, dashboard instructions, Adyen onboarding requirements, and Android APK
