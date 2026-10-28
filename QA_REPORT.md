@@ -343,7 +343,7 @@ change set.
 | Pinned retailer storage | Unit and migration-policy checks passed | Migration is local and unapplied; the UI clearly reports this and leaves pin actions unavailable until applied |
 | Delete-account request | Unit and browser routing checks passed | In-app flow uses warning, separate acknowledgement, account-email confirmation, and a mail request; account deletion itself is not performed |
 | iOS build / native scanner | Not tested | Requires macOS, Xcode, and the separately approved iOS dependency migration |
-| Android APK / physical Samsung rendering | Pending GitHub Actions for this commit and device installation | A successful CI build must not be interpreted as physical-screen validation |
+| Android APK / physical Samsung rendering | `walletswap-phase1-repairs-debug` was built and uploaded by GitHub Actions; the latest run is listed at [WalletSwap CI](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml) | APK is not installed or exercised on a physical device; a CI build is not physical-screen validation |
 | Real retailer verification, live payment, or external feed | Not available or tested | No provider integration was added or claimed |
 
 The original `Mockup.html` remains preserved. The local demo was used only for

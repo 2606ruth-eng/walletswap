@@ -21,7 +21,10 @@
   Profile → Settings → Account → Delete Account. The request has an explicit
   warning, a separate acknowledgement, and account-email confirmation. It
   opens a support email request and does not claim or perform account deletion.
-  A public `#/account-deletion` guidance route is also available.
+  The warning explains which account data is requested for deletion, that legal
+  retention may apply, and that credentials in device secure storage may need
+  separate cleanup. A public `#/account-deletion` guidance route is also
+  available.
 - Added the homepage question-mark help icon and a short eight-step tour with
   Back, Next, Skip, Close, and restart from Help. It explicitly distinguishes
   simulations from live payment, balance verification, and retailer activity.
@@ -64,7 +67,8 @@
   Add Card recent retailers and custom retailer selection, and Profile →
   Settings → Delete Account navigation.
 - The new Android workflow artifact is **`walletswap-phase1-repairs-debug`**.
-  Its Actions run link and final result will be recorded here after CI completes.
+  Download it from the newest completed
+  [WalletSwap CI Actions run](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml).
 
 ## Remaining bugs, blockers, and testing
 
@@ -117,3 +121,12 @@
    enabling account deletion or entering the URL in Google Play Console.
 5. Add external retailer or payment integrations only under explicit
    authorization and a separately reviewed security/budget plan.
+
+## Follow-up issues
+
+- [#2](https://github.com/2606ruth-eng/walletswap/issues/2) Reproduce Android
+  preference save failure on Samsung.
+- [#3](https://github.com/2606ruth-eng/walletswap/issues/3) Apply and verify
+  user-scoped retailer favorites migration.
+- [#4](https://github.com/2606ruth-eng/walletswap/issues/4) Review account
+  deletion workflow and publish HTTPS request page.

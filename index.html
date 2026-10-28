@@ -1435,7 +1435,7 @@ function vSettings(a, path) {
   }
   return `<div class="top">${backBtn("/app/settings", "Back to settings")}<h1>Delete account</h1></div>
     <div class="deletion-warning" role="note"><b>This action cannot be undone.</b>
-      <p>Request deletion of your WalletSwap account and associated profile, wallet, and activity data. Some records may need to be retained where required by law or to resolve disputes. Support will explain any applicable retention.</p>
+      <p>Request deletion of your WalletSwap account, profile, wallet metadata, preferences, and activity data. Card credentials kept in this device's secure storage may need separate device cleanup; ask support for guidance. Some records may need to be retained where required by law or to resolve disputes. Support will explain any applicable retention.</p>
       <p>Opening or submitting this request does not delete your account. Support must process the request and confirm completion.</p>
     </div>
     ${!ui.deletion.confirmed ? `<label class="pref"><input type="checkbox" data-model="deletion.acknowledged" data-live="1" ${ui.deletion.acknowledged ? "checked" : ""}><span class="rbody">I understand this starts a deletion request and does not immediately delete my account.</span></label>
@@ -1452,7 +1452,7 @@ function vPublicDeletion() {
     <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a><a class="link" href="#/">Back to home</a></div>
     <h1>Request account deletion</h1>
     <p class="lead">To request deletion of your WalletSwap account and associated personal data, email admin@walletswap.org from the address associated with the account.</p>
-    <div class="deletion-warning"><b>Important</b><p>This is a request, not an instant deletion. Support will confirm processing and explain any records that must be retained by law or to resolve disputes.</p></div>
+    <div class="deletion-warning"><b>Important</b><p>This is a request, not an instant deletion. It covers account/profile, wallet metadata, preferences, and activity. Card credentials kept in device secure storage may need separate cleanup. Support will confirm processing and explain any records that must be retained by law or to resolve disputes.</p></div>
     <label class="field"><span>Account email</span><input class="input" type="email" data-model="deletion.email" autocomplete="email" value="${esc(ui.deletion.email)}" placeholder="you@example.com"></label>
     <button class="btn danger block" type="button" data-act="public-deletion-request">Open deletion request email</button>
     <p class="foot-note">The public request route for app-store account-deletion guidance.</p>
