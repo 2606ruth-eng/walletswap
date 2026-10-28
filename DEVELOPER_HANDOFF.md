@@ -67,8 +67,8 @@
   Add Card recent retailers and custom retailer selection, and Profile →
   Settings → Delete Account navigation.
 - The new Android workflow artifact is **`walletswap-phase1-repairs-debug`**.
-  Download it from the newest completed
-  [WalletSwap CI Actions run](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml).
+  It was built and uploaded successfully in
+  [Actions run 40731321927](https://github.com/2606ruth-eng/walletswap/actions/runs/40731321927).
 
 ## Remaining bugs, blockers, and testing
 
