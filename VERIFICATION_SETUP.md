@@ -2,9 +2,12 @@
 
 ## Current state
 
-Automatic retailer verification is **disabled**. The app has an authenticated
-`check-card-balance` Edge Function and review-only SQL for provider approval,
-ownership checks, request de-duplication, rate limiting, and protected result
+Automatic retailer verification is **disabled**. The migrations
+`20261028000500_retailer_favorites.sql` and
+`20261028000600_gift_card_verification.sql` have been applied to the linked
+Supabase project. The authenticated `check-card-balance` Edge Function is
+deployed with JWT verification enabled. It enforces card ownership, retailer
+approval, request de-duplication, rate limiting, and protected result
 recording. The Adyen test request builder is based on the official Stored Value
 API guide, but it is not connected to the function: the function accepts only a
 card ID, request ID, and consent flag. It does not accept or log card numbers,
@@ -40,18 +43,18 @@ Sources checked 2026-10-28:
 - [Target Help: checking your GiftCard balance](https://www.target.com/help/article/000062295)
 - [Starbucks gift-card management](https://www.starbucks.com/gift/card/manage)
 
-## Review and apply the SQL only after approval
+## Migration status
 
-1. Review `supabase/migrations/20261028000600_gift_card_verification.sql` and
-   the change to `supabase/config.toml`. The migration is **not applied** by
-   this work.
-2. In the intended Supabase project, open **Database → Migrations** and confirm
-   the project's current migration state. Do not reset the project or delete
-   data.
-3. After approving the SQL, use **SQL Editor → New query** to apply the complete
-   migration in order, or use the project's reviewed migration process. Do not
-   run `db reset` or `db push` against production.
-4. Verify the directory and status columns in the SQL Editor:
+Both migrations below have already been applied to the linked WalletSwap
+Supabase project. Do not run them again, reset the database, or push pending
+migrations from a worktree that does not contain this migration history:
+
+- `20261028000500_retailer_favorites.sql`
+- `20261028000600_gift_card_verification.sql`
+
+The verification migration extends the existing schema; it does not recreate
+tables or reset data. To verify the deployed directory and columns in SQL
+Editor, run:
 
    ```sql
    select retailer, verification_method, integration_status,
@@ -81,14 +84,17 @@ is service-role-only; the start RPC derives the owner from `auth.uid()`.
 
 ## Edge Functions and deployment gate
 
-The new function is `check-card-balance`; JWT verification is enabled in
+The deployed function is `check-card-balance`; JWT verification is enabled in
 `supabase/config.toml`. Changes to Ruby's read-only verification metadata tool
-are in `ruby-chat`. Neither function was deployed. Do not deploy or configure
-credentials until the migration, function diff, authorization contract, and
-credential-handling design are approved.
+are in `ruby-chat`; that function was not deployed as part of this verification
+deployment. The production endpoint was checked without Authorization and
+returned HTTP 401. A valid-user integration test has not been run because no
+synthetic test-user session was available; no test card was added to the
+production project.
 
-After review and explicit approval, deploy the migration first, then deploy
-these functions from the repository root:
+The function was deployed after the migrations had been applied, without
+re-running migrations or deploying another function. Future updates, after
+review and approval, can deploy only this function from the repository root:
 
 ```powershell
 npx.cmd supabase functions deploy check-card-balance

@@ -162,6 +162,14 @@ test("Edge Function authenticates, scopes card ownership, requires consent, and 
   assert.match(functionSource, /complete_card_balance_verification/);
 });
 
+test("Edge Function returns only a fixed official-site fallback when automatic verification is unavailable", () => {
+  assert.match(functionSource, /approvedOfficialBalanceUrl\(card\.retailer\)/);
+  assert.match(functionSource, /status: "VERIFICATION_UNAVAILABLE"[\s\S]*?verification_method:[\s\S]*?official_balance_url: officialBalanceUrl \|\| null/);
+  assert.equal(approvedOfficialBalanceUrl("target"), "https://www.target.com/guest/gift-card-balance");
+  assert.equal(approvedOfficialBalanceUrl("starbucks"), "https://www.starbucks.com/gift/card/manage");
+  assert.equal(approvedOfficialBalanceUrl("unknown-retailer"), "");
+});
+
 test("migration retains client write restrictions and isolates verification records", () => {
   assert.match(migration, /balance_verification_status in \([\s\S]*?'UNVERIFIED'[\s\S]*?'USER_REPORTED'[\s\S]*?'PROVIDER_VERIFIED'[\s\S]*?'RECHECK_REQUIRED'[\s\S]*?'VERIFICATION_FAILED'/);
   assert.match(migration, /create policy balance_verification_attempts_select_own[\s\S]*?owner_id = \(select auth\.uid\(\)\)/i);

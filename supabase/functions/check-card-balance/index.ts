@@ -1,6 +1,7 @@
 import { authenticatedUser, serviceClient } from "../_shared/client.ts";
 import { jsonResponse, rejectDisallowedOrigin, validUuid } from "../_shared/http.ts";
 import { getCardBalanceProvider, safeProviderErrorCategory, validateNormalizedProviderResult } from "../_shared/card-balance-providers.js";
+import { approvedOfficialBalanceUrl } from "../../../src/services/retailer-verification.js";
 
 const MAX_BODY_BYTES = 2048;
 
@@ -66,6 +67,7 @@ Deno.serve(async request => {
     .select("retailer,verification_method,integration_status,supports_balance_verification,authorized_provider,supported_card_types,credentials_required")
     .eq("retailer", card.retailer).maybeSingle();
   if (retailerError) return jsonResponse(request, 500, { error: "Retailer configuration could not be checked." });
+  const officialBalanceUrl = approvedOfficialBalanceUrl(card.retailer);
   if (
     !retailer
     || retailer.verification_method !== "AUTHORIZED_API"
@@ -75,16 +77,27 @@ Deno.serve(async request => {
     )
     || retailer.supports_balance_verification !== true
     || !retailer.authorized_provider
-  ) return jsonResponse(request, 409, { error: "Automatic verification is unavailable for this retailer." });
+  ) return jsonResponse(request, 409, {
+    status: "VERIFICATION_UNAVAILABLE",
+    error: "Automatic verification is unavailable for this retailer.",
+    verification_method: retailer?.verification_method || "MANUAL_ONLY",
+    official_balance_url: officialBalanceUrl || null,
+  });
   if (!Array.isArray(retailer.supported_card_types) || !retailer.supported_card_types.includes(card.card_type)) {
-    return jsonResponse(request, 422, { error: "This card type is not supported by the approved provider." });
+    return jsonResponse(request, 422, {
+      status: "VERIFICATION_UNAVAILABLE",
+      error: "This card type is not supported by the approved provider.",
+      official_balance_url: officialBalanceUrl || null,
+    });
   }
 
   const provider = getCardBalanceProvider(retailer.authorized_provider);
   if (!provider || !provider.supportsCard({ retailer: card.retailer, cardType: card.card_type, currency: card.currency })) {
     return jsonResponse(request, 503, {
+      status: "VERIFICATION_UNAVAILABLE",
       error: "The approved provider adapter is not configured for this card.",
       category: safeProviderErrorCategory("provider_not_configured"),
+      official_balance_url: officialBalanceUrl || null,
     });
   }
 
