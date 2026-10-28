@@ -32,8 +32,8 @@ export function subscribeToNotifications(userId, onNotification, onStatus) {
     .subscribe(onStatus);
 }
 
-export async function getNotificationPreferences() {
-  const { data, error } = await requireSupabase().from("notification_preferences")
+export async function getNotificationPreferences(client = requireSupabase()) {
+  const { data, error } = await client.from("notification_preferences")
     .select("card_activity_enabled,balance_change_enabled,expiry_reminders_enabled,weekly_summary_enabled,marketplace_alerts_enabled")
     .maybeSingle();
   if (error) throw error;

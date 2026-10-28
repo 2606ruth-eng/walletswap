@@ -11,6 +11,7 @@ import {
   setFavoriteRetailer,
 } from "../src/services/retailer-favorites.js";
 import {
+  getNotificationPreferences,
   notificationPreferenceErrorMessage,
   updateNotificationPreferences,
 } from "../src/services/notifications.js";
@@ -136,6 +137,35 @@ test("notification preferences are persisted with authenticated user scoping", a
     ["eq", "user_id", "user-b"],
   ]);
   assert.match(notificationPreferenceErrorMessage({ code: "42501" }), /Sign in again/);
+});
+
+test("notification preferences can be read after reload using the authenticated RLS context", async () => {
+  const expected = {
+    card_activity_enabled: false,
+    balance_change_enabled: true,
+    expiry_reminders_enabled: false,
+    weekly_summary_enabled: true,
+    marketplace_alerts_enabled: false,
+  };
+  const calls = [];
+  const client = {
+    from(table) {
+      calls.push(["from", table]);
+      return {
+        select(columns) {
+          calls.push(["select", columns]);
+          return {
+            maybeSingle: async () => ({ data: expected, error: null }),
+          };
+        },
+      };
+    },
+  };
+  assert.deepEqual(await getNotificationPreferences(client), expected);
+  assert.deepEqual(calls, [
+    ["from", "notification_preferences"],
+    ["select", "card_activity_enabled,balance_change_enabled,expiry_reminders_enabled,weekly_summary_enabled,marketplace_alerts_enabled"],
+  ]);
 });
 
 test("deletion request URL requires account email and explicitly remains a request", () => {
