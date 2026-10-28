@@ -67,8 +67,9 @@
   Add Card recent retailers and custom retailer selection, and Profile →
   Settings → Delete Account navigation.
 - The new Android workflow artifact is **`walletswap-phase1-repairs-debug`**.
-  It was built and uploaded successfully in
-  [Actions run 40731321927](https://github.com/2606ruth-eng/walletswap/actions/runs/40731321927).
+  It was built and uploaded successfully in the latest CI run for this repair
+  branch. See the [WalletSwap CI runs](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml?query=branch%3A2606ruth-eng-walletswap-capacitor-review)
+  and download the artifact from the successful **Android debug APK** job.
 
 ## Remaining bugs, blockers, and testing
 
@@ -94,6 +95,9 @@
 - Barcode scanning, OCR, camera permissions, and native notification
   presentation still require physical Android and iPhone testing. This Windows
   environment cannot validate an iOS/Xcode build.
+- Preferences now have regression coverage for both authenticated writes and
+  subsequent reads through the same RLS-backed table. Cross-account behavior
+  remains unverified against live Supabase accounts.
 - No authorized retailer balance feed, real payment processor, or card-transfer
   integration was added.
 

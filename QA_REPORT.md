@@ -332,7 +332,7 @@ change set.
 
 | Check | Result | Boundary |
 |---|---|---|
-| `npm.cmd test` | Passed: **85/85** | Includes retailer helper/service tests, owner scoping, deletion request, Ruby scroll behavior, tour content, scanner handoff, and existing regression suites |
+| `npm.cmd test` | Passed: **86/86** | Includes preference read/write, retailer helper/service tests, owner scoping, deletion request, Ruby scroll behavior, tour content, scanner handoff, and existing regression suites |
 | `npm.cmd run build` | Passed | Vite production build |
 | `npx.cmd cap sync android` | Passed | Synced 8 installed Capacitor plugins and current web assets |
 | `git diff --check` | Passed | No whitespace errors |
@@ -343,7 +343,7 @@ change set.
 | Pinned retailer storage | Unit and migration-policy checks passed | Migration is local and unapplied; the UI clearly reports this and leaves pin actions unavailable until applied |
 | Delete-account request | Unit and browser routing checks passed | In-app flow uses warning, separate acknowledgement, account-email confirmation, and a mail request; account deletion itself is not performed |
 | iOS build / native scanner | Not tested | Requires macOS, Xcode, and the separately approved iOS dependency migration |
-| Android APK / physical Samsung rendering | `walletswap-phase1-repairs-debug` built and uploaded successfully in [Actions run 40731321927](https://github.com/2606ruth-eng/walletswap/actions/runs/40731321927) | APK is not installed or exercised on a physical device; a CI build is not physical-screen validation |
+| Android APK / physical Samsung rendering | `walletswap-phase1-repairs-debug` built and uploaded successfully by the Android debug APK job in the [WalletSwap CI runs](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml?query=branch%3A2606ruth-eng-walletswap-capacitor-review) | APK is not installed or exercised on a physical device; a CI build is not physical-screen validation |
 | Real retailer verification, live payment, or external feed | Not available or tested | No provider integration was added or claimed |
 
 The original `Mockup.html` remains preserved. The local demo was used only for
