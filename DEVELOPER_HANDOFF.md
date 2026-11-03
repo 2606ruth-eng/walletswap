@@ -1,5 +1,12 @@
 # WalletSwap UI repair handoff
 
+> **Current release-hardening status (2026-11-03):** this section supersedes stale
+> migration and release statements below where they conflict. The favorites
+> migration `20261028000500_retailer_favorites.sql` and gift-card verification
+> migration `20261028000600_gift_card_verification.sql` are already deployed
+> (owner-confirmed). The separate `20261103000100_listing_lock_integrity.sql`
+> remains review-only and unapplied.
+
 ## Completed repairs
 
 - Removed the duplicate app-drawn green top stripe and the `.phone` top border in
@@ -14,9 +21,8 @@
 - Added pinned, recently used, alphabetically browsable, searchable, and custom
   retailer choices to Add Card. Custom retailer names are preserved in the
   existing wallet model. Favorites are user-scoped through RLS.
-- Added the additive `retailer_favorites` migration. It is local only and has
-  **not** been applied to Supabase. Pinning stays unavailable and explains why
-  until the migration is applied.
+- Added the additive `retailer_favorites` migration. It is deployed to Supabase;
+  authenticated favorites use the existing user-scoped RLS policies.
 - Moved account deletion out of the main Profile dashboard into
   Profile → Settings → Account → Delete Account. The request has an explicit
   warning, a separate acknowledgement, and account-email confirmation. It
@@ -50,7 +56,8 @@
 - `src/services/notifications.js`
 - `src/services/retailer-favorites.js`
 - `src/services/wallet.js`
-- `supabase/migrations/20261028000500_retailer_favorites.sql` (not deployed)
+- `supabase/migrations/20261028000500_retailer_favorites.sql` (deployed)
+- `supabase/migrations/20261028000600_gift_card_verification.sql` (deployed)
 - `tests/card-capture.test.js`
 - `tests/cloud-build-config.test.js`
 - `tests/ui-repairs.test.js`
@@ -84,8 +91,8 @@
 - Ruby scroll behavior is covered by pure helper and source regression tests.
   Restored live history and keyboard resizing still need an authenticated
   app/device test.
-- Favorites require approval and application of the new RLS migration before
-  production pin/unpin can be used. Do not deploy it as part of this repair.
+- Favorites migration is already deployed. Live pin/unpin and cross-account
+  isolation still need verification against authenticated Supabase accounts.
 - `account-delete` remains undeployed and unreviewed. The current action is a
   support request only. A reviewed, authorized backend deletion flow and
   reauthentication policy are still needed before automated deletion.
@@ -118,8 +125,8 @@
 2. Install the CI APK on Samsung hardware and verify the status-bar/header
    appearance, Ruby chat scroll and keyboard behavior, and camera/notification
    permission flows.
-3. After separate approval, apply the favorites migration and exercise
-   pin/unpin and cross-account isolation against Supabase.
+3. Exercise favorites pin/unpin and cross-account isolation against Supabase;
+   the migration is already deployed.
 4. Review the undeployed account-deletion function, required reauthentication,
    legal retention language, and the hosted account-deletion web URL before
    enabling account deletion or entering the URL in Google Play Console.
@@ -130,8 +137,9 @@
 
 - [#2](https://github.com/2606ruth-eng/walletswap/issues/2) Reproduce Android
   preference save failure on Samsung.
-- [#3](https://github.com/2606ruth-eng/walletswap/issues/3) Apply and verify
-  user-scoped retailer favorites migration.
+- [#3](https://github.com/2606ruth-eng/walletswap/issues/3) Verify
+  user-scoped favorites pin/unpin and cross-account isolation. The issue's
+  migration-application portion is stale because the migration is deployed.
 - [#4](https://github.com/2606ruth-eng/walletswap/issues/4) Review account
   deletion workflow and publish HTTPS request page.
 
@@ -142,3 +150,28 @@
 - Internal lock only: WalletSwap cannot freeze a card at the retailer.
 - Android: versionCode 2 / 1.1, appId `com.walletswap.app`. Add secret `ANDROID_DEBUG_KEYSTORE_BASE64` (the previous debug keystore) so new APKs install over old ones.
 - Open items and blockers: `REGRESSION_TEST_REPORT.md`.
+
+## Release handoff (2026-11-03)
+
+- Hardening implementation commit: `2c5988f24dc44a7a73318c7d713e49f03b024c27`.
+- PR #7: [draft, open, based on `2606ruth-eng-gift-card-verification`](https://github.com/2606ruth-eng/walletswap/pull/7).
+  It has not been merged; no migration or deployment was performed.
+- Changed files in the implementation commit: `.env.example`,
+  `.github/workflows/android-apk.yml`, `DEVELOPER_HANDOFF.md`, `QA_REPORT.md`,
+  `README.md`, `REGRESSION_TEST_REPORT.md`, `RELEASE_READINESS.md`,
+  `android/app/build.gradle`, `index.html`, `src/services/app-data.js`,
+  `src/services/auth-redirect.js`, `src/services/auth.js`,
+  `src/services/marketplace.js`, `src/services/session-restore.js`,
+  `src/social-links.js`,
+  `supabase/migrations/20261103000100_listing_lock_integrity.sql`,
+  `tests/auth-redirect.test.js`, and `tests/hardening.test.js`.
+- At the time checked, Actions runs [41706374799](https://github.com/2606ruth-eng/walletswap/actions/runs/41706374799)
+  and [41706320665](https://github.com/2606ruth-eng/walletswap/actions/runs/41706320665)
+  for the implementation commit were in progress. Web tests/build and Deno
+  type-check had passed; both Android debug APK jobs were assembling. No APK
+  artifact had been uploaded yet. These jobs are from `WalletSwap CI` on the
+  draft PR, not a manual workflow dispatch. No merge is authorized or planned;
+  check the linked runs for final artifact status.
+- Migrations `20261028000500` (retailer favorites) and `20261028000600`
+  (gift-card verification) are deployed (owner-confirmed). Only
+  `20261103000100_listing_lock_integrity.sql` remains unapplied pending review.

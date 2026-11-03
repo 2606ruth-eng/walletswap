@@ -276,4 +276,3 @@ grant execute on function public.create_swap_proposal(uuid, uuid) to authenticat
 -- `select ... for update` on wallet_cards in create_marketplace_listing. Re-assert it idempotently.
 create unique index if not exists marketplace_one_open_listing_per_card_idx
   on public.marketplace_listings (card_id) where status in ('active', 'reserved');
-
