@@ -33,6 +33,11 @@
   [also available](https://github.com/2606ruth-eng/walletswap/actions/runs/41706932771/artifacts/13267645215).
   No manual workflow dispatch was needed. No merge was performed or is
   requested.
+- Later documentation-only commit `e19f07f77b08952b21baf42679040263ff68b5eb`
+  also passed the PR run [41707725605](https://github.com/2606ruth-eng/walletswap/actions/runs/41707725605)
+  and produced
+  [`walletswap-phase1-repairs-debug`](https://github.com/2606ruth-eng/walletswap/actions/runs/41707725605/artifacts/13267250804)
+  (`app-debug.apk`). No application code changed after the `7759d84` build.
 - `20261028000500_retailer_favorites.sql` and
   `20261028000600_gift_card_verification.sql` are deployed (owner-confirmed).
   Only `20261103000100_listing_lock_integrity.sql` remains unapplied and needs

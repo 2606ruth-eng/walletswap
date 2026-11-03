@@ -340,16 +340,21 @@ change set.
 | Android status-bar/header behavior | Source fix present; physical device untested | Removed duplicate app-drawn stripe and phone top border; retained root safe-area insets and system status bar |
 | Preference persistence | Service tests passed; reported device failure not reproduced | The earlier read-only Supabase check found the expected table/columns, own-row RLS, and authenticated update grants; no authenticated device session was available to capture the original failing request/status |
 | Ruby scroll behavior | Helper/source regression passed | Browser demo cannot show chat history; authenticated saved-history behavior needs an account-backed app session |
-| Pinned retailer storage | Unit and migration-policy checks passed | Migration is local and unapplied; the UI clearly reports this and leaves pin actions unavailable until applied |
+| Pinned retailer storage | Unit and migration-policy checks passed | Migration `20261028000500_retailer_favorites.sql` is deployed (owner-confirmed); live pin/unpin and cross-account checks remain unverified |
 | Delete-account request | Unit and browser routing checks passed | In-app flow uses warning, separate acknowledgement, account-email confirmation, and a mail request; account deletion itself is not performed |
 | iOS build / native scanner | Not tested | Requires macOS, Xcode, and the separately approved iOS dependency migration |
-| Android APK / physical Samsung rendering | `walletswap-phase1-repairs-debug` built and uploaded successfully by the Android debug APK job in the [WalletSwap CI runs](https://github.com/2606ruth-eng/walletswap/actions/workflows/ci.yml?query=branch%3A2606ruth-eng-walletswap-capacitor-review) | APK is not installed or exercised on a physical device; a CI build is not physical-screen validation |
+| Android APK / physical Samsung rendering | [`walletswap-phase1-repairs-debug`](https://github.com/2606ruth-eng/walletswap/actions/runs/41706944901/artifacts/13266625377) (`app-debug.apk`) built and uploaded successfully for PR #7 | APK is not installed or exercised on a physical device; a CI build is not physical-screen validation |
 | Real retailer verification, live payment, or external feed | Not available or tested | No provider integration was added or claimed |
 
 The original `Mockup.html` remains preserved. The local demo was used only for
 UI/navigation inspection; no real user, preference, or card data was modified.
-The favorites migration was not deployed and no production services were
-changed.
+The favorites migration `20261028000500_retailer_favorites.sql` and gift-card
+verification migration `20261028000600_gift_card_verification.sql` are
+deployed (owner-confirmed). This repair branch applied no migration and
+deployed no production service; those previously owner-applied migrations
+remain live. Live favorites pin/unpin and cross-account checks remain
+unverified. The separate listing-lock migration
+`20261103000100_listing_lock_integrity.sql` is review-only and unapplied.
 
 ## Hardening pass (2026-11)
 

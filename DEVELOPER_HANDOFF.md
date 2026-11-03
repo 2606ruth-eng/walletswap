@@ -114,8 +114,9 @@
   added to the repository or included in this handoff.
 - Preference and favorites writes are scoped to the authenticated user; the
   favorites migration enforces own-row RLS and a `(user_id, retailer)` key.
-- No production migration or service was changed. No paid provider or scanning
-  subscription was added.
+- This repair branch applied no production migration and deployed no production
+  service; previously owner-applied migrations remain live. No paid provider
+  or scanning subscription was added.
 
 ## External developer priorities
 
@@ -178,6 +179,11 @@
   name [here](https://github.com/2606ruth-eng/walletswap/actions/runs/41706932771/artifacts/13267645215).
   These were `WalletSwap CI` runs on the draft PR/push, not a manual workflow
   dispatch. No merge is authorized or planned.
+- The later documentation-only commit `e19f07f77b08952b21baf42679040263ff68b5eb`
+  also passed PR run [41707725605](https://github.com/2606ruth-eng/walletswap/actions/runs/41707725605)
+  and uploaded
+  [`walletswap-phase1-repairs-debug`](https://github.com/2606ruth-eng/walletswap/actions/runs/41707725605/artifacts/13267250804)
+  (`app-debug.apk`). No application code changed after the `7759d84` build.
 - Migrations `20261028000500` (retailer favorites) and `20261028000600`
   (gift-card verification) are deployed (owner-confirmed). Only
   `20261103000100_listing_lock_integrity.sql` remains unapplied pending review.
