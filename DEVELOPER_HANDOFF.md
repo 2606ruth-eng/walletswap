@@ -154,6 +154,9 @@
 ## Release handoff (2026-11-03)
 
 - Hardening implementation commit: `2c5988f24dc44a7a73318c7d713e49f03b024c27`.
+  The whitespace and handoff correction commit is
+  `7759d84cf9beb231f05c0ed599462cb8b04e2877`; that was the PR head checked
+  below.
 - PR #7: [draft, open, based on `2606ruth-eng-gift-card-verification`](https://github.com/2606ruth-eng/walletswap/pull/7).
   It has not been merged; no migration or deployment was performed.
 - Changed files in the implementation commit: `.env.example`,
@@ -165,13 +168,16 @@
   `src/social-links.js`,
   `supabase/migrations/20261103000100_listing_lock_integrity.sql`,
   `tests/auth-redirect.test.js`, and `tests/hardening.test.js`.
-- At the time checked, Actions runs [41706374799](https://github.com/2606ruth-eng/walletswap/actions/runs/41706374799)
-  and [41706320665](https://github.com/2606ruth-eng/walletswap/actions/runs/41706320665)
-  for the implementation commit were in progress. Web tests/build and Deno
-  type-check had passed; both Android debug APK jobs were assembling. No APK
-  artifact had been uploaded yet. These jobs are from `WalletSwap CI` on the
-  draft PR, not a manual workflow dispatch. No merge is authorized or planned;
-  check the linked runs for final artifact status.
+- Current-head Actions runs [41706944901](https://github.com/2606ruth-eng/walletswap/actions/runs/41706944901)
+  (pull request) and [41706932771](https://github.com/2606ruth-eng/walletswap/actions/runs/41706932771)
+  (push) for `7759d84cf9beb231f05c0ed599462cb8b04e2877` completed successfully.
+  Web tests/build and Deno type-check passed, as did Android debug APK assembly
+  and artifact upload. The artifact is
+  [`walletswap-phase1-repairs-debug`](https://github.com/2606ruth-eng/walletswap/actions/runs/41706944901/artifacts/13266625377)
+  (`app-debug.apk`). A second successful push run uploaded the same artifact
+  name [here](https://github.com/2606ruth-eng/walletswap/actions/runs/41706932771/artifacts/13267645215).
+  These were `WalletSwap CI` runs on the draft PR/push, not a manual workflow
+  dispatch. No merge is authorized or planned.
 - Migrations `20261028000500` (retailer favorites) and `20261028000600`
   (gift-card verification) are deployed (owner-confirmed). Only
   `20261103000100_listing_lock_integrity.sql` remains unapplied pending review.
