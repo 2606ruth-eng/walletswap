@@ -1,4 +1,4 @@
-import { getPublicListings } from "./marketplace.js";
+import { getMarketplaceFeePercent, getPublicListings } from "./marketplace.js";
 import { getNotifications, getNotificationPreferences } from "./notifications.js";
 import { getCardActivity, getWalletCards } from "./wallet.js";
 import { requireSupabase } from "./supabase.js";
@@ -15,13 +15,14 @@ const ACTIVITY_KIND = {
 
 export async function loadRemoteAccount(user) {
   const client = requireSupabase();
-  const [{ data: profile, error: profileError }, cards, activity, market, preferences, notifications] = await Promise.all([
+  const [{ data: profile, error: profileError }, cards, activity, market, preferences, notifications, feePercent] = await Promise.all([
     client.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
     getWalletCards(),
     getCardActivity(),
     getPublicListings(),
     getNotificationPreferences(),
     getNotifications(20),
+    getMarketplaceFeePercent(),
   ]);
   if (profileError) throw profileError;
   const cardsById = new Map(cards.map(card => [card.id, card]));
@@ -51,6 +52,7 @@ export async function loadRemoteAccount(user) {
       activity: mappedActivity,
       notifications,
       market,
+      feePercent,
       saved: 0,
       payment: null,
       payout: { method: null, balance: 0 },

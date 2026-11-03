@@ -92,3 +92,10 @@ and [WALLET_PASS_READINESS.md](WALLET_PASS_READINESS.md) before deployment or
 release. GitHub Actions passed web tests/build, Ruby type-check, and Android
 debug APK assembly; the APK is a CI test artifact, not a signed store release
 or a physical-device verification.
+
+## Session persistence, auth callbacks and LinkedIn
+
+- Sessions persist in Android Keystore-backed SecureStorage; offline starts keep the session and retry on reconnect/foreground. Sign-out is local to the device.
+- Set `VITE_SUPABASE_AUTH_REDIRECT_URL` to the production HTTPS origin so signup/reset emails use a clickable web callback (`/auth/callback`, `/auth/recovery`).
+- Set `VITE_LINKEDIN_COMPANY_URL` to the official company page (https://www.linkedin.com/company/<slug>). The footer link is hidden until configured.
+- See `REGRESSION_TEST_REPORT.md` for verification status and `supabase/migrations/20261103000100_listing_lock_integrity.sql` (review-only, not applied).

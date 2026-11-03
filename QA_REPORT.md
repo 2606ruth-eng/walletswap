@@ -350,3 +350,7 @@ The original `Mockup.html` remains preserved. The local demo was used only for
 UI/navigation inspection; no real user, preference, or card data was modified.
 The favorites migration was not deployed and no production services were
 changed.
+
+## Hardening pass (2026-11)
+
+Automated: 107/107 `npm test` pass, `npm run build` and `npx cap sync android` succeed. No physical-device, live-auth, live-email or database concurrency tests were run; see `REGRESSION_TEST_REPORT.md` for per-requirement status.

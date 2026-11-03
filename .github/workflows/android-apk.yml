@@ -13,6 +13,8 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || vars.VITE_SUPABASE_PUBLISHED_KEY }}
+      VITE_LINKEDIN_COMPANY_URL: ${{ vars.VITE_LINKEDIN_COMPANY_URL }}
+      VITE_SUPABASE_AUTH_REDIRECT_URL: ${{ vars.VITE_SUPABASE_AUTH_REDIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +28,17 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+      - name: Restore stable debug signing key (optional)
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Using configured debug keystore so updates install over earlier builds."
+          else
+            echo "No ANDROID_DEBUG_KEYSTORE_BASE64 secret: APK is signed with a fresh debug key; uninstall the previous build first."
+          fi
       - run: npm ci
       - name: Validate public Supabase configuration
         run: npm run verify:cloud-config

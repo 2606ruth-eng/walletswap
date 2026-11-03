@@ -134,3 +134,11 @@
   user-scoped retailer favorites migration.
 - [#4](https://github.com/2606ruth-eng/walletswap/issues/4) Review account
   deletion workflow and publish HTTPS request page.
+
+## Auth, listing-lock and release hardening (2026-11)
+
+- `src/services/session-restore.js` classifies auth errors: only 401/403 and session-invalid codes cause a local sign-out; network/5xx keep the session. `registerAuthLifecycle` (auth.js) resumes refresh and restore.
+- `supabase/migrations/20261103000100_listing_lock_integrity.sql` is NOT applied; it needs owner review. It adds marketplace_settings fee, lock trigger, swap guards, `balance_verification` in the public view. The client falls back gracefully when it is absent.
+- Internal lock only: WalletSwap cannot freeze a card at the retailer.
+- Android: versionCode 2 / 1.1, appId `com.walletswap.app`. Add secret `ANDROID_DEBUG_KEYSTORE_BASE64` (the previous debug keystore) so new APKs install over old ones.
+- Open items and blockers: `REGRESSION_TEST_REPORT.md`.

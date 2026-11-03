@@ -10,7 +10,7 @@ function mapListing(row) {
     price: Number(row.asking_price),
     currency: row.currency,
     seller: "WalletSwap seller",
-    rating: "—",
+    rating: "n/a",
     type: row.card_type === "physical" ? "Physical" : "Digital",
     listedAt: new Date(row.created_at).getTime(),
     discount: Number(row.discount_percentage),
@@ -20,14 +20,22 @@ function mapListing(row) {
   };
 }
 
-const PUBLIC_COLUMNS = "id,retailer,card_type,currency,reported_balance,asking_price,discount_percentage,fee_percentage,estimated_seller_payout,created_at";
+const BASE_COLUMNS = "id,retailer,card_type,currency,reported_balance,asking_price,discount_percentage,fee_percentage,estimated_seller_payout,created_at";
+// balance_verification is added by a migration pending approval; fall back to the base view without it.
+const PUBLIC_COLUMNS = `${BASE_COLUMNS},balance_verification`;
 
 export async function getPublicListings({ search = "", retailer = "", limit = 50 } = {}) {
-  let query = requireSupabase().from("public_marketplace_listings")
-    .select(PUBLIC_COLUMNS).order("created_at", { ascending: false }).limit(Math.min(Math.max(limit, 1), 100));
-  if (retailer) query = query.eq("retailer", retailer);
-  if (search.trim()) query = query.ilike("retailer", `%${search.trim().replace(/[%_]/g, "")}%`);
-  const { data, error } = await query;
+  const run = columns => {
+    let query = requireSupabase().from("public_marketplace_listings")
+      .select(columns).order("created_at", { ascending: false }).limit(Math.min(Math.max(limit, 1), 100));
+    if (retailer) query = query.eq("retailer", retailer);
+    if (search.trim()) query = query.ilike("retailer", `%${search.trim().replace(/[%_]/g, "")}%`);
+    return query;
+  };
+  let { data, error } = await run(PUBLIC_COLUMNS);
+  if (error && (error.code === "42703" || /balance_verification/.test(error.message || ""))) {
+    ({ data, error } = await run(BASE_COLUMNS));
+  }
   if (error) throw error;
   return (data || []).map(mapListing);
 }
@@ -94,4 +102,19 @@ export async function respondToSwapProposal(requestId, response) {
   });
   if (error) throw error;
   return data;
+}
+
+export const DEFAULT_FEE_PERCENT = 5;
+
+// The configured fee lives in marketplace_settings (migration pending approval).
+// Until that exists the existing 5% platform fee, which the backend applies, is shown.
+export async function getMarketplaceFeePercent() {
+  try {
+    const { data, error } = await requireSupabase().from("marketplace_settings").select("fee_percentage").maybeSingle();
+    if (error || !data) return DEFAULT_FEE_PERCENT;
+    const value = Number(data.fee_percentage);
+    return Number.isFinite(value) && value >= 0 && value <= 50 ? value : DEFAULT_FEE_PERCENT;
+  } catch {
+    return DEFAULT_FEE_PERCENT;
+  }
 }
