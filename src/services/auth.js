@@ -2,6 +2,7 @@ import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { authCallbackRouteFromUrl, authCallbackStatusFromUrl, completeAuthCallback } from "./auth-callback.js";
 import { resolveAuthRedirectUrl } from "./auth-redirect.js";
+import { LOCAL_SIGN_OUT } from "./session-restore.js";
 import { requireSupabase } from "./supabase.js";
 
 export function authRedirectUrl(purpose = "confirmation") {
@@ -43,7 +44,7 @@ export async function resendSignupConfirmation(email) {
 }
 
 export async function signOut() {
-  return requireSupabase().auth.signOut();
+  return requireSupabase().auth.signOut(LOCAL_SIGN_OUT);
 }
 
 export async function sendPasswordReset(email) {
@@ -84,7 +85,7 @@ export async function deleteCurrentAccount() {
   const client = requireSupabase();
   const { data, error } = await client.functions.invoke("account-delete", { body: {} });
   if (error) throw error;
-  const { error: signOutError } = await client.auth.signOut();
+  const { error: signOutError } = await client.auth.signOut(LOCAL_SIGN_OUT);
   if (signOutError) throw signOutError;
   return data;
 }
@@ -108,4 +109,27 @@ export async function registerAuthDeepLinks({ onResult = () => {}, onError = () 
     void handleUrl(event.url);
   });
   return () => listener.remove();
+}
+
+// Supabase recommends pausing token auto-refresh while a native app is backgrounded
+// and refreshing immediately on resume. Resume also lets the caller retry a restore
+// that failed because the device was offline.
+export async function registerAuthLifecycle({ onResume = () => {} } = {}) {
+  const client = requireSupabase();
+  const cleanups = [];
+  const online = () => onResume("online");
+  window.addEventListener("online", online);
+  cleanups.push(() => window.removeEventListener("online", online));
+  if (Capacitor.isNativePlatform()) {
+    const listener = await App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) {
+        client.auth.startAutoRefresh();
+        onResume("foreground");
+      } else {
+        client.auth.stopAutoRefresh();
+      }
+    });
+    cleanups.push(() => listener.remove());
+  }
+  return () => cleanups.forEach(fn => fn());
 }

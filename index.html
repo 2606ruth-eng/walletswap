@@ -412,13 +412,15 @@ import { applyRecognizedDetails, createCardCapture, safeCardSnapshot, validateRe
 import { hasNativeCredentialVault, loadCardCredentials, protectCardCredentials, removeCardCredentials, storeCardCredentials } from "./src/credential-vault.js";
 import { authCallbackStatusFromUrl, classifyAuthCallbackError } from "./src/services/auth-callback.js";
 import { AUTH_CALLBACK_PATH, AUTH_RECOVERY_CALLBACK_PATH } from "./src/services/auth-redirect.js";
-import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
+import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, registerAuthLifecycle, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
+import { resolveRestoredSession } from "./src/services/session-restore.js";
 import { loadRemoteAccount } from "./src/services/app-data.js";
 import { createListing, cancelListing, getPublicListings, prepareSimulatedPurchase, updateListing } from "./src/services/marketplace.js";
 import { importLegacyWallet } from "./src/services/migration.js";
 import { markNotificationRead, notificationPreferenceErrorMessage, reportCardActivityProblem, requestLocalNotificationPermission, showStoredNotification, subscribeToNotifications, syncExpiryReminders, updateNotificationPreferences } from "./src/services/notifications.js";
 import { supabase, supabaseConfigError, supabaseConfigured } from "./src/services/supabase.js";
 import { buildDeletionRequestUrl } from "./src/account-deletion.js";
+import { LINKEDIN_COMPANY_URL } from "./src/social-links.js";
 import { HELP_STEPS } from "./src/help-tour.js";
 import { isNearScrollEnd, scrollToLatest } from "./src/ruby-scroll.js";
 import { customRetailerId, normalizeRetailerSelection, rankRecentlyUsedRetailers } from "./src/retailer-preferences.js";
@@ -525,6 +527,7 @@ const cvars = b => `--c1:${b.c1};--c2:${b.c2};${b.ci ? "--ci:" + b.ci + ";" : ""
 /* walletswap brand mark: two overlapping rounded squares (ink + green) */
 const MARK = (s = 30) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 470 470" aria-hidden="true"><rect x="30" y="30" width="280" height="280" rx="70" fill="var(--mark-ink)"/><rect x="160" y="160" width="280" height="280" rx="70" fill="#12B76A"/></svg>`;
 const LOGO = (s = 30, cls = "") => `${MARK(s)}<span class="wordmark${cls}">walletswap</span>`;
+const LINKEDIN_URL = LINKEDIN_COMPANY_URL;
 const TAGLINE = "Buy, sell, and swap any gift card or voucher.";
 const tile = (b, label) => `<span class="tile" style="${cvars(b)}">${esc(initials(label || b.name).slice(0, 1))}</span>`;
 
@@ -596,14 +599,17 @@ const Store = {
             else if (acct() && !acct().demo) clearLocalSession("Signed out");
           }, 0);
         }).data.subscription;
+        this.removeAuthLifecycle = await registerAuthLifecycle({ onResume: () => void this.retryRestore() }).catch(() => null);
         const session = await getAuthSession();
         if (session?.user) {
-          const authenticatedUser = await getAuthenticatedUser();
-          if (!authenticatedUser) {
-            await supabase.auth.signOut();
+          const restored = await resolveRestoredSession(session, getAuthenticatedUser);
+          if (restored.action === "signout-local") {
+            await supabaseSignOut().catch(() => {});
             clearLocalSession("Your session expired. Please sign in again.");
             return;
           }
+          if (restored.action === "offline") toast("You appear to be offline. WalletSwap will reconnect automatically.");
+          const authenticatedUser = restored.user;
           const recovery = ui.authCallback.recovery || isAuthRecoveryRoute();
           const completingAuthCallback = callbackRoute || ui.authCallback.status !== "idle";
           if (ui.authCallback.status === "processing") ui.authCallback = { status: "confirmed", recovery };
@@ -622,7 +628,7 @@ const Store = {
           ui.authCallback = { ...classifyAuthCallbackError(error), recovery: true };
         } else {
           console.error("Supabase session initialization failed.");
-          toast("Cloud sign-in is temporarily unavailable. You can still use the demo wallet.");
+          toast("Cloud sign-in is temporarily unavailable. Your saved session is kept and will retry when you're back online.");
         }
       }
       return;
@@ -648,6 +654,23 @@ const Store = {
         this.pushCloud();
       }
     } catch (e) { console.warn("Cloud sync unavailable:", e && e.message); }
+  },
+  async retryRestore() {
+    if (!supabaseConfigured || this.restoring) return;
+    if (acct()) return;
+    this.restoring = true;
+    try {
+      const session = await getAuthSession();
+      if (!session?.user) return;
+      const restored = await resolveRestoredSession(session, getAuthenticatedUser);
+      if (restored.action === "signout-local") {
+        await supabaseSignOut().catch(() => {});
+        clearLocalSession("Your session expired. Please sign in again.");
+      } else if (restored.user) {
+        await activateRemoteUser(restored.user);
+      }
+    } catch { /* still offline; the next resume retries */ }
+    finally { this.restoring = false; }
   },
   writeLocal() {
     if (!this.local) return;
@@ -1130,7 +1153,7 @@ function vCard(a, id) {
   <div class="progress" role="progressbar" aria-label="Balance remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
   <div class="pmeta"><span>${money(c.balance)} of ${money(c.original)} left</span><span>${origin}</span></div>
   <div class="notice">${icon(c.balanceVerification === "verified" ? "check" : "info", 18)}<span>${c.balanceVerification === "verified" ? `Provider-confirmed balance: ${money(c.latestProviderBalance ?? c.balance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.verificationProvider ? ` · ${esc(c.verificationProvider)}` : ""}${c.latestProviderVerifiedAt || c.verifiedAt ? ` · checked ${esc(new Date(c.latestProviderVerifiedAt || c.verifiedAt).toLocaleString())}` : ""}.` : `${c.verificationStatus === "VERIFICATION_FAILED" ? `Last check failed (${esc(c.verificationErrorCategory || "unknown")}). ` : ""}Balance reported by you; it has not been verified with the retailer.${c.lastBalanceObservedAt ? ` Last recorded ${esc(new Date(c.lastBalanceObservedAt).toLocaleString())}.` : ""}${c.latestProviderBalance !== null && c.latestProviderBalance !== undefined ? ` Previous provider-confirmed balance: ${money(c.latestProviderBalance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.latestProviderVerifiedAt ? ` on ${esc(new Date(c.latestProviderVerifiedAt).toLocaleString())}` : ""}.` : ""}`}${hasNativeCredentialVault() ? " Card credentials are stored in the device's secure storage." : " This browser does not persist full card credentials."}</span></div>
-  ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. Spending is paused while the card is listed.</span></div>` : ""}
+  ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. <b>Locked for sale in WalletSwap</b>: spending, edits and a second listing are blocked here until you unlist. This does not stop anyone from using the card at the original retailer.</span></div>` : ""}
   <div class="list" style="margin-top:14px">
     <div class="secret"><div class="rbody"><div class="s-k">Card number</div><div class="s-v">${revN && hasCredentials ? esc(groupNum(c.number)) : "•••• •••• •••• " + esc(cardLast4(c))}</div></div>
       ${hasCredentials ? `<button class="icon-btn" data-act="reveal" data-k="n${c.id}" aria-label="${revN ? "Hide" : "Show"} card number">${icon(revN ? "eyeoff" : "eye", 18)}</button>
@@ -1533,6 +1556,8 @@ function vAuthCallback(callback, recovery = false) {
     <h1>${esc(content[0])}</h1>
     <p class="lead" role="${["processing", "confirmed"].includes(callback.status) ? "status" : "alert"}">${esc(content[1])}</p>
     ${callback.status === "confirmed" ? `<a class="btn primary block" href="${recovery ? "#/update-password" : "#/app/wallet"}">${recovery ? "Choose a new password" : "Continue to WalletSwap"}</a>` : ""}
+    ${callback.status === "confirmed" && !recovery && !Capacitor.isNativePlatform() ? `<p class="alt"><a class="link" href="walletswap://auth/callback">Open the WalletSwap app</a> (sign in there with the same email and password)</p>` : ""}
+    ${callback.status === "expired" || callback.status === "error" ? `<p class="alt">Need a new link? Log in with your email and password and choose "Resend confirmation email".</p>` : ""}
     <p class="alt"><a class="link" href="#/login">Return to login</a></p>
   </div></div>`;
 }
@@ -1578,7 +1603,7 @@ function vHome(a) {
     <div class="list" aria-label="Example listings">${sample.map(l => listingRow(l, false)).join("")}</div>
   </div></section>
   <section class="wrap closing"><h2>Stop leaving money on gift cards.</h2><div class="cta" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${cta}</div></section>
-  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a></div></footer>
+  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a>${LINKEDIN_URL ? `<a class="link" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="WalletSwap on LinkedIn (opens in a new tab)">LinkedIn</a>` : ""}</div></footer>
   ${tutorial}</div>`;
 }
 function renderTutorial() {
@@ -1634,16 +1659,18 @@ function sheetHtml(a) {
       const ok = price > 0;
       const pct = ok ? Math.round((1 - price / c.balance) * 100) : 0;
       const cloudMode = supabaseConfigured && !a.demo;
+      const feeRate = (cloudMode && Number.isFinite(d.feePercent) ? d.feePercent : FEE * 100) / 100;
+      const feeLabel = r2(feeRate * 100);
       return sheetWrap(s.type === "sell" ? `Sell ${esc(brandName(c))} card` : "Change asking price", `<form data-form="${s.type}" novalidate>
         ${fin("sl-price", "price", "Asking price", { money: true, num: true, attrs: 'data-fmt="money" data-live="1" inputmode="decimal"' })}
         <div class="sum">
           <div><span>Buyer saves</span><b class="num">${ok && pct > 0 ? pct + "%" : "–"}</b></div>
-          <div><span>walletswap fee (5%)</span><span class="num">${ok ? money(price * FEE) : "–"}</span></div>
-          <div><span>You'll receive</span><b class="num pos">${ok ? money(price * (1 - FEE)) : "–"}</b></div>
+          <div><span>walletswap fee (${feeLabel}%)</span><span class="num">${ok ? money(price * feeRate) : "–"}</span></div>
+          <div><span>You'll receive</span><b class="num pos">${ok ? money(price * (1 - feeRate)) : "–"}</b></div>
         </div>
         <button class="btn primary block" type="submit">${cloudMode ? (s.type === "sell" ? "Create listing" : "Save price") : (s.type === "sell" ? "List on marketplace" : "Save price")}</button>
         <p class="hint" style="text-align:center;margin-top:10px">${cloudMode ? "Listings are previews only. No payment, gift-card transfer, or payout is processed." : `Your card number is only released to the buyer after payment. Payouts go to ${esc(d.payout.method ? d.payout.method.label : "your payout method")}.`}</p></form>`,
-        `Balance ${money(c.balance)}. ${cloudMode ? "Balances are user-reported; listings do not complete a sale." : "Cards like this usually sell at 8–15% off."}`);
+        `Balance ${money(c.balance)}. ${cloudMode ? `${c.balanceVerification === "verified" ? "Balance was confirmed by an authorized provider." : "Balance is user-reported and not verified."} Buyers never see your card number or PIN. Listings do not complete a sale.` : "Cards like this usually sell at 8–15% off."}`);
     }
     case "unlist": return confirmSheet("Take this card off the marketplace?", `Your ${esc(brandName(c))} card goes back to your wallet and you can spend it again.`, "Unlist card", "unlist");
     case "remove": return confirmSheet("Remove this card?", `The ${esc(brandName(c))} card${c.balance > 0 ? ` with ${money(c.balance)} left` : ""} will be deleted from your wallet${c.status === "listed" ? " and the marketplace" : ""}. This can't be undone.`, "Remove card", "remove", true);
@@ -2139,27 +2166,27 @@ async function openRubyConversation(conversationId) {
     chat.loading = false;
     render();
   }
-  async function removeRubyConversation(conversationId) {
-    const chat = ui.ruby;
-    if (chat.busy || chat.loading) return;
-    if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
-    chat.loading = true;
-    chat.error = "";
-    render();
-    try {
-      await deleteRubyConversation(conversationId);
-      chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
-      if (chat.conversationId === conversationId) {
-        chat.conversationId = chat.conversations[0]?.id || "";
-        chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
-      }
-      chat.mode = "unknown";
-    } catch (error) {
-      chat.error = rubyErrorMessage(error);
-    } finally {
-      chat.loading = false;
-      render();
+}
+async function removeRubyConversation(conversationId) {
+  const chat = ui.ruby;
+  if (chat.busy || chat.loading) return;
+  if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
+  chat.loading = true;
+  chat.error = "";
+  render();
+  try {
+    await deleteRubyConversation(conversationId);
+    chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
+    if (chat.conversationId === conversationId) {
+      chat.conversationId = chat.conversations[0]?.id || "";
+      chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
     }
+    chat.mode = "unknown";
+  } catch (error) {
+    chat.error = rubyErrorMessage(error);
+  } finally {
+    chat.loading = false;
+    render();
   }
 }
 async function reloadRubyHistory() {
