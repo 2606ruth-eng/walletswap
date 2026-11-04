@@ -2166,27 +2166,27 @@ async function openRubyConversation(conversationId) {
     chat.loading = false;
     render();
   }
-  async function removeRubyConversation(conversationId) {
-    const chat = ui.ruby;
-    if (chat.busy || chat.loading) return;
-    if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
-    chat.loading = true;
-    chat.error = "";
-    render();
-    try {
-      await deleteRubyConversation(conversationId);
-      chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
-      if (chat.conversationId === conversationId) {
-        chat.conversationId = chat.conversations[0]?.id || "";
-        chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
-      }
-      chat.mode = "unknown";
-    } catch (error) {
-      chat.error = rubyErrorMessage(error);
-    } finally {
-      chat.loading = false;
-      render();
+}
+async function removeRubyConversation(conversationId) {
+  const chat = ui.ruby;
+  if (chat.busy || chat.loading) return;
+  if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
+  chat.loading = true;
+  chat.error = "";
+  render();
+  try {
+    await deleteRubyConversation(conversationId);
+    chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
+    if (chat.conversationId === conversationId) {
+      chat.conversationId = chat.conversations[0]?.id || "";
+      chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
     }
+    chat.mode = "unknown";
+  } catch (error) {
+    chat.error = rubyErrorMessage(error);
+  } finally {
+    chat.loading = false;
+    render();
   }
 }
 async function reloadRubyHistory() {
