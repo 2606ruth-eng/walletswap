@@ -31,6 +31,12 @@ enable_signup = true
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Your WalletSwap verification code"
+content_path = "./supabase/templates/confirmation.html"
 
 [functions.ruby-chat]
 verify_jwt = true

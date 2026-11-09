@@ -83,3 +83,24 @@ work. Nothing below is claimed as device- or live-auth-tested unless stated. "Ve
 | App-like UI | Home and sign-in | Narrow screens/native get a focused layout (sticky full-width actions, back arrow, safe-area padding, marketing sections hidden). Static/unit checks only; no real-device or full browser screenshot review performed. |
 | Balance bot | Automatic website balance checking | NOT IMPLEMENTED: scraping retailer sites without authorization or bypassing CAPTCHA is not allowed, and no authorized provider credentials exist. Official-website/manual balance remains the fallback; no results are faked. |
 | P10 | APK update-over-previous-build | BLOCKED BY EXTERNAL CONFIGURATION (needs `ANDROID_DEBUG_KEYSTORE_BASE64` secret matching the earlier key; otherwise uninstall first) |
+
+## Email verification code and first-use guide (PR #7 follow-up)
+
+### Changes
+- Signup now opens a **#/verify** screen. The user enters the code from the email; verification is server-side via `auth.verifyOtp({ type: "signup" })` (`verifySignupCode`). No client-side verification or fake delivery.
+- Code UX: numeric/one-time-code input, 60 s resend cooldown (`resendSecondsRemaining`), invalid/expired/rate-limited/network errors (`src/services/auth-otp.js`). Supabase returns the same `otp_expired` error for wrong and expired codes, so the wording covers both.
+- Privacy: copy is neutral ("If an account can be created for ..."). For an already-confirmed email Supabase sends no email and returns an obfuscated user; the UI does not reveal it.
+- Login with `email_not_confirmed` offers "Enter verification code" / "Resend code". Password recovery, auth callbacks, session handling are unchanged.
+- Sign-in polish: email keyboard attributes, app-like layout from the earlier commit.
+- Guide: `HELP_STEPS` gained `route`/`cta`. The tour renders in a body-level host. First entry to `#/app/*` for a non-demo account starts a non-blocking coach card once (`walletswap.onboarding.v1.<account>` in localStorage). It has Next/Back/Skip, "Show me" navigation, Escape to skip, `aria-live`, reduced-motion handling. Replay via Profile > More > "Replay the guide"; the home help button still opens the modal tour.
+- Limitation: the "seen" flag is per device/browser, not synced across devices.
+
+### Email delivery diagnosis (not verified)
+- No Supabase dashboard, log, or CLI access was available, so the production cause of missing signup emails is **undiagnosed**.
+- Code findings: the old flow only used link-based confirmation with no code entry; `config.toml` had `enable_confirmations = true` and no template.
+- Possible causes the owner must check in the dashboard (not changed here): (1) Supabase default SMTP only delivers to organization team addresses and is heavily rate-limited (about 2/hour), so custom SMTP is required for general users; (2) the **Confirm signup** template must contain `{{ .Token }}` (the Magic Link template does not control signup). Until updated, the dashboard template still sends a link, not a code.
+- Repo: `supabase/templates/confirmation.html` and `[auth.email.template.confirmation]`/`otp_length`/`otp_expiry` in `supabase/config.toml` apply to local/CLI config only. Copy the template into Authentication > Emails > Confirm signup in the production project. Nothing was deployed or changed in production.
+
+### Validation
+- `npm.cmd test`: 125/125 pass (new `tests/otp-onboarding.test.js`; `tests/auth-flow.test.js` updated for the code flow). `npm.cmd run build` passes.
+- Not tested: live email delivery, a real signup with a code, physical device/emulator behavior of the guide or scanner.

@@ -43,6 +43,14 @@ export async function resendSignupConfirmation(email) {
   });
 }
 
+export async function verifySignupCode({ email, token }) {
+  return requireSupabase().auth.verifyOtp({
+    email: email.trim().toLowerCase(),
+    token: String(token).replace(/[\s-]/g, ""),
+    type: "signup",
+  });
+}
+
 export async function signOut() {
   return requireSupabase().auth.signOut(LOCAL_SIGN_OUT);
 }

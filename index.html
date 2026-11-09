@@ -431,6 +431,15 @@ body.app-like .auth .btn.primary{height:54px;font-size:17px}
 .tour-dialog h3{margin:0 0 8px;font-size:20px}
 .tour-dialog p{color:var(--ink2);line-height:1.55}
 .tour-actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}
+.tour-coach{position:fixed;z-index:110;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100% - 24px));background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.28);outline:none}
+.tour-coach h3{margin:0 0 6px;font-size:18px}
+.tour-coach p{color:var(--ink2);line-height:1.5;margin:0 0 6px}
+.tour-coach .tour-progress{margin:0;flex:1}
+.tour-coach .tour-actions{margin-top:12px}
+.tour-show{margin-top:6px}
+.code-input{font-size:24px;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){.tour-coach{animation:tourIn .2s ease-out}}
+@keyframes tourIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .settings-intro{margin:0 0 16px;color:var(--muted)}
 .deletion-warning{padding:14px;border:1px solid var(--danger);border-radius:14px;background:color-mix(in srgb,var(--danger) 6%,var(--surface));margin:12px 0}
 .deletion-form{display:grid;gap:12px}
@@ -445,7 +454,7 @@ import { applyRecognizedDetails, createCardCapture, safeCardSnapshot, validateRe
 import { hasNativeCredentialVault, loadCardCredentials, protectCardCredentials, removeCardCredentials, storeCardCredentials } from "./src/credential-vault.js";
 import { authCallbackStatusFromUrl, classifyAuthCallbackError } from "./src/services/auth-callback.js";
 import { AUTH_CALLBACK_PATH, AUTH_RECOVERY_CALLBACK_PATH } from "./src/services/auth-redirect.js";
-import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, registerAuthLifecycle, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
+import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, registerAuthLifecycle, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName, verifySignupCode } from "./src/services/auth.js";
 import { resolveRestoredSession } from "./src/services/session-restore.js";
 import { loadRemoteAccount } from "./src/services/app-data.js";
 import { createListing, cancelListing, getPublicListings, prepareSimulatedPurchase, updateListing } from "./src/services/marketplace.js";
@@ -455,6 +464,8 @@ import { supabase, supabaseConfigError, supabaseConfigured } from "./src/service
 import { buildDeletionRequestUrl } from "./src/account-deletion.js";
 import { LINKEDIN_COMPANY_URL } from "./src/social-links.js";
 import { HELP_STEPS } from "./src/help-tour.js";
+import { hasSeenOnboarding, markOnboardingSeen } from "./src/onboarding.js";
+import { classifyOtpError, normalizeOtpCode, resendSecondsRemaining, validateOtpCode } from "./src/services/auth-otp.js";
 import { isNearScrollEnd, scrollToLatest } from "./src/ruby-scroll.js";
 import { customRetailerId, normalizeRetailerSelection, rankRecentlyUsedRetailers } from "./src/retailer-preferences.js";
 import { approvedOfficialBalanceUrl, getRetailerVerification } from "./src/services/retailer-verification.js";
@@ -923,7 +934,7 @@ function seedDemoData() {
 }
 /* ================= ui state & router ================= */
 const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "", captureMethod: "", captureConfirmed: false, retailerConfirmed: false });
-const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0 }, deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
+const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0, mode: "help" }, otpSentAt: 0, onboardingChecked: "", deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
 const cardCapture = createCardCapture({
   camera: {
     checkPermissions: () => Camera.checkPermissions(),
@@ -1021,8 +1032,8 @@ function render() {
     html = vAuthCallback(ui.authCallback, r.path === AUTH_RECOVERY_CALLBACK_PATH);
   } else if (r.path === "/account-deletion") {
     html = vPublicDeletion();
-  } else if (["login", "signup", "reset-password", "update-password"].includes(r.parts[0])) {
-    if (a && ["login", "signup"].includes(r.parts[0])) { location.replace("#/app/wallet"); return; }
+  } else if (["login", "signup", "reset-password", "update-password", "verify"].includes(r.parts[0])) {
+    if (a && ["login", "signup", "verify"].includes(r.parts[0])) { location.replace("#/app/wallet"); return; }
     html = vAuth(r.parts[0]);
   } else {
     html = vHome(a);
@@ -1048,12 +1059,15 @@ function render() {
     const first = $(".sheet input, .sheet button.btn"); if (first) first.focus({ preventScroll: true });
   }
   ui.focusSheet = false;
+  maybeStartOnboarding(r, a);
+  syncTourOverlay();
   const titles = { wallet: "Wallet", cards: "All cards", card: "Card", add: "Add a card", market: "Marketplace", activity: "Activity", profile: "Profile", settings: "Settings", ruby: "Ruby" };
   document.title = r.parts[0] === "app" ? `${titles[r.parts[1] || "wallet"] || "Wallet"} – walletswap`
     : r.parts[0] === "login" ? "Log in – walletswap"
       : r.parts[0] === "signup" ? "Create account – walletswap"
         : r.parts[0] === "reset-password" ? "Reset password – walletswap"
-          : r.parts[0] === "update-password" ? "Update password – walletswap"
+        : r.parts[0] === "update-password" ? "Update password – walletswap"
+          : r.parts[0] === "verify" ? "Verify email – walletswap"
             : r.path === AUTH_CALLBACK_PATH || r.path === AUTH_RECOVERY_CALLBACK_PATH ? "Email confirmation – walletswap"
               : r.path === "/account-deletion" ? "Account deletion – walletswap"
             : "walletswap – buy, sell, and swap gift cards";
@@ -1513,6 +1527,7 @@ function vProfile(a) {
   <p class="group-label">More</p>
   <div class="list">
     <a class="kv" href="#/"><span class="ricon">${icon("home", 18)}</span><span class="k">walletswap home page</span>${icon("right", 18, 'class="chev"')}</a>
+    <button class="kv" type="button" data-act="tutorial-replay"><span class="ricon">${icon("help", 18)}</span><span class="k">Replay the guide</span>${icon("right", 18, 'class="chev"')}</button>
     <a class="kv" href="#/app/settings"><span class="ricon">${icon("lock", 18)}</span><span class="k">Settings</span>${icon("right", 18, 'class="chev"')}</a>
     ${a.demo ? kv("refresh", "Reset demo data", "", "reset") : supabaseConfigured ? `<button class="kv" data-act="sheet" data-s="import-local"><span class="ricon">${icon("refresh", 18)}</span><span class="k">Import local wallet</span>${icon("right", 18, 'class="chev"')}</button>` : ""}
   </div>
@@ -1562,7 +1577,27 @@ function vPublicDeletion() {
 }
 
 /* ================= auth ================= */
+function vVerify() {
+  const email = ui.authPendingEmail;
+  const wait = resendSecondsRemaining(ui.otpSentAt, Date.now());
+  return `<div class="auth"><div class="auth-in">
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a>    <a class="link auth-back" href="#/signup" aria-label="Back to sign up"><span aria-hidden="true">&larr;</span><span class="auth-back-txt"> Back</span></a></div>
+    <h1>Enter your code</h1>
+    <p class="lead">${email ? `If an account can be created for <b>${esc(email)}</b>, we sent a verification code there. Codes expire, so use the newest one.` : "Enter the email you signed up with and the code we sent."}</p>
+    ${ui.authErr ? `<div class="form-err" role="alert">${esc(ui.authErr)}</div>` : ""}
+    ${ui.authNotice ? `<div class="notice" role="status">${esc(ui.authNotice)}</div>` : ""}
+    <form data-form="verify" novalidate>
+      ${email ? "" : `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || "")}" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="you@example.com">${fieldErr("email")}</label>`}
+      <label class="field"><span>Verification code</span><input class="input code-input${bad("code")}" id="au-code" data-model="f.code" value="${esc(ui.f.code || "")}" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]*" enterkeyhint="done" placeholder="123456" aria-describedby="err-code">${fieldErr("code")}</label>
+      <button class="btn primary block" type="submit" style="margin-top:6px">Verify and continue</button>
+    </form>
+    <button class="btn ghost block" type="button" data-act="resend-code" data-resend="1" ${wait > 0 ? "disabled" : ""} style="margin-top:12px">${wait > 0 ? `Resend code in ${wait}s` : "Resend code"}</button>
+    <p class="alt"><a class="link" href="#/signup" data-act="change-email">Use a different email</a> &middot; <a class="link" href="#/login">Back to log in</a></p>
+  </div></div>`;
+}
+
 function vAuth(mode) {
+  if (mode === "verify") return vVerify();
   const reset = mode === "reset-password";
   const update = mode === "update-password";
   const login = mode === "login";
@@ -1577,10 +1612,10 @@ function vAuth(mode) {
     ${loopbackAuthOrigin && (login || mode === "signup" || reset) ? `<p class="hint" role="status">This local address only works on this computer. Confirmation and reset links sent from here will not open on your phone. To use email links on Android or iPhone, open WalletSwap in its installed app or on a real HTTPS website before requesting the email.</p>` : ""}
     ${ui.authErr ? `<div class="form-err" role="alert">${esc(ui.authErr)}</div>` : ""}
     ${ui.authNotice ? `<div class="notice" role="status">${esc(ui.authNotice)}</div>` : ""}
-    ${ui.authPendingEmail && supabaseConfigured && (login || mode === "signup") && (!ui.f.email || String(ui.f.email).trim().toLowerCase() === ui.authPendingEmail) ? `<button class="btn ghost block" type="button" data-act="resend-confirmation" style="margin-bottom:12px">Resend confirmation email</button>` : ""}
+    ${ui.authPendingEmail && supabaseConfigured && (login || mode === "signup") && (!ui.f.email || String(ui.f.email).trim().toLowerCase() === ui.authPendingEmail) ? `<a class="btn primary block" href="#/verify" style="margin-bottom:10px">Enter verification code</a><button class="btn ghost block" type="button" data-act="resend-code" style="margin-bottom:12px">Resend code</button>` : ""}
     <form data-form="${mode}" novalidate>
       ${!login && !reset && !update ? `<label class="field"><span>Full name</span><input class="input${bad("name")}" id="au-name" data-model="f.name" value="${esc(ui.f.name || "")}" autocomplete="name" placeholder="Alex Morgan">${fieldErr("name")}</label>` : ""}
-      ${!update ? `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || (login ? ui.authPendingEmail : ""))}" autocomplete="email" placeholder="you@example.com">${fieldErr("email")}</label>` : ""}
+      ${!update ? `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || (login ? ui.authPendingEmail : ""))}" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="${reset ? "send" : "next"}" placeholder="you@example.com">${fieldErr("email")}</label>` : ""}
       ${!reset ? `<label class="field"><span>Password</span><div class="pw"><input class="input${bad("password")}" id="au-pw" type="${pwType}" data-model="f.password" value="${esc(ui.f.password || "")}" autocomplete="${login ? "current-password" : "new-password"}" placeholder="${login ? "Your password" : "At least 8 characters"}">
         <button type="button" data-act="show-pw" aria-label="${ui.showPw ? "Hide" : "Show"} password">${icon(ui.showPw ? "eyeoff" : "eye", 19)}</button></div>${fieldErr("password")}</label>` : ""}
       <button class="btn primary block" type="submit" style="margin-top:6px">${login ? "Log in" : reset ? "Send reset link" : update ? "Update password" : "Create account"}</button>
@@ -1636,7 +1671,7 @@ function vHome(a) {
   ];
   const cta = a ? `<a class="btn primary" href="#/app/wallet">Open my wallet</a>`
     : `<a class="btn primary" href="#/signup">Create a free account</a><button class="btn ghost" data-act="demo-login">Try the demo</button>`;
-  const tutorial = ui.tutorial.open ? renderTutorial() : "";
+  const tutorial = "";
   return `<div class="home">
   <header class="wrap nav"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(34)}</a>
     <nav class="nav-r"><button class="txt hide-sm" data-act="scroll" data-to="how">How it works</button>
@@ -1669,17 +1704,53 @@ function vHome(a) {
   ${tutorial}</div>`;
 }
 function renderTutorial() {
-  const step = HELP_STEPS[ui.tutorial.step] || HELP_STEPS[0];
-  return `<div class="tour-backdrop" role="presentation" data-act="tutorial-backdrop">
-    <section class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
-      <div class="tour-head"><h2 id="tour-title">WalletSwap quick tour</h2><button class="icon-btn" type="button" data-act="tutorial-close" aria-label="Close tutorial">${icon("x", 18)}</button></div>
-      <p class="tour-progress">Step ${ui.tutorial.step + 1} of ${HELP_STEPS.length}</p>
-      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>
-      <div class="tour-actions"><button class="btn ghost sm" type="button" data-act="tutorial-back" ${ui.tutorial.step === 0 ? "disabled" : ""}>Back</button>
+  const t = ui.tutorial;
+  const step = HELP_STEPS[t.step] || HELP_STEPS[0];
+  const last = t.step === HELP_STEPS.length - 1;
+  const actions = `<div class="tour-actions"><button class="btn ghost sm" type="button" data-act="tutorial-back" ${t.step === 0 ? "disabled" : ""}>Back</button>
         <button class="btn ghost sm" type="button" data-act="tutorial-skip">Skip tour</button>
-        <button class="btn primary sm" type="button" data-act="tutorial-next">${ui.tutorial.step === HELP_STEPS.length - 1 ? "Finish" : "Next"}</button></div>
+        <button class="btn primary sm" type="button" data-act="tutorial-next" id="tour-next">${last ? "Finish" : "Next"}</button></div>`;
+  const show = t.mode === "onboarding" && step.route ? `<button class="btn ghost sm tour-show" type="button" data-act="tutorial-show" data-route="${esc(step.route)}">${esc(step.cta || "Show me")}</button>` : "";
+  if (t.mode === "onboarding") {
+    return `<section class="tour-coach" role="region" aria-label="WalletSwap first-use guide" aria-live="polite" tabindex="-1" id="tour-card">
+      <div class="tour-head"><p class="tour-progress">Step ${t.step + 1} of ${HELP_STEPS.length}</p><button class="icon-btn" type="button" data-act="tutorial-skip" aria-label="Skip guide">${icon("x", 18)}</button></div>
+      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>${show}
+      ${actions}</section>`;
+  }
+  return `<div class="tour-backdrop" role="presentation" data-act="tutorial-backdrop">
+    <section class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body" tabindex="-1" id="tour-card">
+      <div class="tour-head"><h2 id="tour-title">WalletSwap quick tour</h2><button class="icon-btn" type="button" data-act="tutorial-close" aria-label="Close tutorial">${icon("x", 18)}</button></div>
+      <p class="tour-progress">Step ${t.step + 1} of ${HELP_STEPS.length}</p>
+      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>
+      ${actions}
     </section>
   </div>`;
+}
+let tourShown = null;
+function syncTourOverlay() {
+  let host = document.getElementById("tour-host");
+  if (!ui.tutorial.open) { if (host) host.remove(); tourShown = null; return; }
+  if (!host) { host = document.createElement("div"); host.id = "tour-host"; document.body.appendChild(host); }
+  const key = ui.tutorial.mode + ":" + ui.tutorial.step;
+  host.innerHTML = renderTutorial();
+  if (tourShown !== key) {
+    tourShown = key;
+    const target = ui.tutorial.mode === "onboarding" ? document.getElementById("tour-card") : document.getElementById("tour-next");
+    if (target && target.focus) target.focus({ preventScroll: true });
+  }
+}
+function startTour(mode, step = 0) { ui.tutorial = { open: true, step, mode }; render(); }
+function endTour() { ui.tutorial = { open: false, step: 0, mode: "help" }; render(); }
+function maybeStartOnboarding(r, a) {
+  if (!a || a.demo || !r || r.parts[0] !== "app" || ui.tutorial.open) return;
+  const id = String(a.id || a.email || "");
+  if (ui.onboardingChecked === id) return;
+  ui.onboardingChecked = id;
+  let storage = null;
+  try { storage = window.localStorage; } catch { storage = null; }
+  if (hasSeenOnboarding(storage, id)) return;
+  markOnboardingSeen(storage, id);
+  ui.tutorial = { open: true, step: 0, mode: "onboarding" };
 }
 /* ================= sheets ================= */
 function sheetWrap(title, body, lead) {
@@ -1844,9 +1915,9 @@ function resetUi() {
   Object.assign(ui, {
     sheet: null, q: "", bf: "all", sort: "discount", af: "all", cf: "active",
     add: blankAdd(), f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "",
-    authPendingEmail: "", showPw: false,
+    authPendingEmail: "", showPw: false, otpSentAt: 0, onboardingChecked: "",
     retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" },
-    tutorial: { open: false, step: 0 }, deletion: { acknowledged: false, confirmed: false, email: "" },
+    tutorial: { open: false, step: 0, mode: "help" }, deletion: { acknowledged: false, confirmed: false, email: "" },
     ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", mode: "unknown", followLatest: true },
   });
 }
@@ -1914,16 +1985,18 @@ const ACTIONS = {
   "ruby-quick": ds => { void sendRubyTurn(ds.v); },
   "ruby-retry": () => { void sendRubyTurn(ui.ruby.retryMessage); },
   "ruby-reload": () => { void reloadRubyHistory(); },
-  "tutorial-open": () => { ui.tutorial = { open: true, step: 0 }; render(); },
-  "tutorial-close": () => { ui.tutorial.open = false; render(); },
-  "tutorial-skip": () => { ui.tutorial.open = false; render(); },
+  "tutorial-open": () => { ui.tutorial = { open: true, step: 0, mode: "help" }; render(); },
+  "tutorial-close": () => endTour(),
+  "tutorial-skip": () => endTour(),
   "tutorial-back": () => { ui.tutorial.step = Math.max(0, ui.tutorial.step - 1); render(); },
   "tutorial-next": () => {
-    if (ui.tutorial.step >= HELP_STEPS.length - 1) ui.tutorial.open = false;
-    else ui.tutorial.step += 1;
+    if (ui.tutorial.step >= HELP_STEPS.length - 1) return endTour();
+    ui.tutorial.step += 1;
     render();
   },
-  "tutorial-backdrop": (ds, el, e) => { if (e.target === el) { ui.tutorial.open = false; render(); } },
+  "tutorial-show": ds => { if (ds.route) go(ds.route); },
+  "tutorial-replay": () => { go("/app/wallet"); startTour("onboarding"); },
+  "tutorial-backdrop": (ds, el, e) => { if (e.target === el) endTour(); },
   "deletion-continue": () => { if (ui.deletion.acknowledged) { ui.deletion.confirmed = true; render(); } },
   "public-deletion-request": () => {
     try { window.location.href = buildDeletionRequestUrl(ui.deletion.email); }
@@ -2175,16 +2248,21 @@ const ACTIONS = {
     if (a) signIn(a, `Welcome, ${firstName(a.name)}. This is the demo wallet.`);
   },
   "show-pw": () => { ui.showPw = !ui.showPw; render(); const el = $("#au-pw"); if (el) el.focus(); },
-  "resend-confirmation": async () => {
-    const email = ui.authPendingEmail;
-    if (!email || !supabaseConfigured) return;
+  "resend-code": async () => {
+    const email = String(ui.authPendingEmail || ui.f.email || "").trim().toLowerCase();
+    if (!supabaseConfigured) return;
+    if (!validEmail(email)) { ui.authErr = "Enter a valid email address first."; render(); return; }
+    if (resendSecondsRemaining(ui.otpSentAt, Date.now()) > 0) return;
+    ui.authPendingEmail = email;
     const { error } = await resendSignupConfirmation(email);
     ui.authErr = "";
+    if (!error) ui.otpSentAt = Date.now();
     ui.authNotice = error
       ? authDeliveryError(error)
-      : "If this account needs confirmation, the request was accepted. Check your inbox and spam folder; delivery may be delayed.";
-    render();
+      : "If this account needs verification, a new code was requested. Check your inbox and spam folder; delivery may be delayed, and only the newest code works.";
+    if (parseRoute().parts[0] === "verify") render(); else go("/verify");
   },
+  "change-email": () => { ui.authPendingEmail = ""; ui.otpSentAt = 0; ui.f = {}; ui.authErr = ""; ui.authNotice = ""; go("/signup"); },
   scroll: ds => { const el = document.getElementById(ds.to); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
 };
 
@@ -2316,6 +2394,27 @@ async function sendRubyTurn(value) {
   }
 }
 const FORMS = {
+  async verify() {
+    const f = ui.f, e = {};
+    const email = String(ui.authPendingEmail || f.email || "").trim().toLowerCase();
+    const code = normalizeOtpCode(f.code);
+    if (!validEmail(email)) e.email = "Enter a valid email address.";
+    const codeError = validateOtpCode(code);
+    if (codeError) e.code = codeError;
+    ui.authErr = ""; ui.authNotice = "";
+    if (Object.keys(e).length) return fail(e);
+    if (!supabaseConfigured) { ui.authErr = supabaseConfigError || "Cloud authentication is not configured."; render(); return; }
+    const { data, error } = await verifySignupCode({ email, token: code });
+    if (error) {
+      ui.errs = {};
+      ui.authErr = classifyOtpError(error).message;
+      render(); return;
+    }
+    if (!data?.user) { ui.authErr = "Verification finished without an account session. Log in to continue."; render(); return; }
+    ui.authPendingEmail = ""; ui.otpSentAt = 0; ui.f = {};
+    await activateRemoteUser(data.user);
+    toast("Email verified. Your wallet is ready.");
+  },
   async login() {
     const f = ui.f, e = {};
     const email = String(f.email || "").trim().toLowerCase();
@@ -2329,8 +2428,8 @@ const FORMS = {
         ui.errs = {};
         ui.authPendingEmail = email;
         ui.authErr = error.code === "email_not_confirmed"
-          ? "Your account needs email confirmation before you can log in. Open the latest WalletSwap confirmation email, or resend it below."
-          : "That email and password could not be verified. Check them and try again. If you recently signed up, confirm your email or resend the link below.";
+          ? "Your account needs email verification before you can log in. Enter the code from your latest WalletSwap email, or request a new one."
+          : "That email and password could not be verified. Check them and try again. If you recently signed up, you can enter or resend your verification code below.";
         ui.authNotice = "";
         render(); return;
       }
@@ -2364,12 +2463,13 @@ const FORMS = {
     if (error) {
       ui.authErr = error.code === "email_address_not_authorized" || error.code === "over_email_send_rate_limit" || error.status === 429
         ? authDeliveryError(error)
-        : "WalletSwap couldn't complete sign-up. Check the details or try again. If you already started, confirm your email or resend the link below.";
+        : "WalletSwap couldn't complete sign-up. Check the details or try again. If you already started, enter or resend your verification code below.";
       render(); return;
     }
     if (!data.session || !data.user) {
-      ui.authNotice = "Email confirmation is required before sign-in. Open the latest WalletSwap confirmation email (check spam), then log in. If it doesn't arrive, resend it below.";
-      ui.f = { email }; render(); return;
+      ui.otpSentAt = Date.now();
+      ui.authNotice = "";
+      ui.f = {}; go("/verify"); return;
     }
     await activateRemoteUser(data.user);
     toast("Your wallet is ready. Add your first card.");
@@ -2652,9 +2752,16 @@ document.addEventListener("submit", async e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (ui.tutorial.open) { ui.tutorial.open = false; render(); }
+  if (ui.tutorial.open) endTour();
   else if (ui.sheet) closeSheet();
 });
+setInterval(() => {
+  const btn = document.querySelector("[data-resend]");
+  if (!btn) return;
+  const wait = resendSecondsRemaining(ui.otpSentAt, Date.now());
+  btn.disabled = wait > 0;
+  btn.textContent = wait > 0 ? `Resend code in ${wait}s` : "Resend code";
+}, 1000);
 document.addEventListener("scroll", e => {
   if (e.target?.id === "screen" && parseRoute().parts[1] === "ruby") {
     ui.ruby.followLatest = isNearScrollEnd(e.target);
@@ -2668,7 +2775,7 @@ if (window.visualViewport) window.visualViewport.addEventListener("resize", () =
 window.addEventListener("hashchange", () => {
   ui.sheet = null; ui.errs = {}; ui.authErr = ""; ui.authNotice = "";
   const r = parseRoute();
-  if (r.path !== "/") ui.tutorial.open = false;
+  if (r.path !== "/" && ui.tutorial.mode !== "onboarding") ui.tutorial.open = false;
   if (r.path === "/app/ruby" && ui.lastPath !== "/app/ruby") ui.ruby.followLatest = true;
   if (!r.path.startsWith("/app/settings/account/delete")) ui.deletion = { confirmed: false, acknowledged: false, email: "" };
   if (r.path !== AUTH_CALLBACK_PATH && r.path !== AUTH_RECOVERY_CALLBACK_PATH) ui.authCallback = { status: "idle" };
