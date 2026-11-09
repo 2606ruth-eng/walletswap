@@ -214,7 +214,7 @@ test("cancelling live scanning releases the camera and listeners", async () => {
   assert.equal(getState().status, "cancelled");
 });
 
-test("scanError and startScan failures clean up and fall back safely", async () => {
+test("scanError and startScan failures clean up and offer an explicit choice instead of auto-scanning", async () => {
   const errored = liveScanner();
   const a = makeCapture({ scanner: errored });
   await a.capture.scanLive();
@@ -223,11 +223,40 @@ test("scanError and startScan failures clean up and fall back safely", async () 
   assert.equal(a.getState().status, "error");
   assert.equal(errored.calls.removed, 2);
 
+  let autoScans = 0;
   const failing = liveScanner({ failStart: true });
+  failing.scan = async () => { autoScans++; return { barcodes: [{ rawValue: "FALLBACK12345" }] }; };
   const b = makeCapture({ scanner: failing });
   await b.capture.scanLive();
-  assert.equal(b.getState().status, "scan-result");
+  assert.equal(b.getState().status, "live-unavailable");
+  assert.match(b.getState().message, /automatic scanner/);
+  assert.match(b.getState().message, /closes as soon as/);
+  assert.equal(autoScans, 0);
   assert.equal(failing.calls.removed, 2);
+  await b.capture.scan();
+  assert.equal(autoScans, 1);
+  assert.equal(b.getState().status, "scan-result");
+});
+
+test("a scanner without controlled capture support never silently opens the automatic scanner", async () => {
+  let autoScans = 0;
+  const scanner = { checkPermissions: async () => ({ camera: "granted" }), requestPermissions: async () => ({ camera: "granted" }), scan: async () => { autoScans++; return { barcodes: [] }; } };
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  assert.equal(getState().status, "live-unavailable");
+  assert.equal(autoScans, 0);
+});
+
+test("retrying the controlled scanner after a failure can succeed", async () => {
+  const scanner = liveScanner();
+  let fail = true;
+  const start = scanner.startScan;
+  scanner.startScan = async () => { if (fail) { fail = false; throw new Error("busy"); } return start(); };
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  assert.equal(getState().status, "live-unavailable");
+  await capture.scanLive();
+  assert.equal(getState().status, "live-scanning");
 });
 
 test("live scanning denies permission without starting the camera", async () => {

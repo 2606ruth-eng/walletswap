@@ -236,7 +236,10 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
 
   // User-controlled capture: the camera previews until the user taps Capture, so detection never picks a code on its own.
   const scanLive = async () => {
-    if (!scanner.startScan || !scanner.addListener || !scanner.stopScan) return scan();
+    if (!scanner.startScan || !scanner.addListener || !scanner.stopScan) {
+      update({ status: "live-unavailable", message: liveUnavailableMessage });
+      return;
+    }
     if (live) return;
     pendingValues = [];
     if (!isNative) {
@@ -267,15 +270,16 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
       await scanner.startScan({ formats: BARCODE_FORMATS });
       if (live === session) update({ status: "live-scanning", message: liveMessage(0), detected: [] });
     } catch (error) {
-      const wasLive = live === session;
       await stopLive();
-      if (wasLive && !isCancellation(error) && !/permission/i.test(String(error?.code || error?.message || ""))) {
-        await scan();
+      if (!isCancellation(error) && !/permission/i.test(String(error?.code || error?.message || ""))) {
+        update({ status: "live-unavailable", message: liveUnavailableMessage });
         return;
       }
       reportScanError(error);
     }
   };
+
+  const liveUnavailableMessage = "The controlled scanner (you tap Capture) couldn't start. You can retry it, use the automatic scanner (it closes as soon as it detects any barcode, so check the result carefully), or enter the details manually.";
 
   const liveMessage = count => count === 0
     ? "Aim the camera at the barcode. Nothing is selected until you tap Capture."

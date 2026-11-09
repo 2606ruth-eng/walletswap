@@ -1315,6 +1315,7 @@ function vAdd(a) {
       ${capture.previewUrl ? `<img class="capture-preview" src="${esc(capture.previewUrl)}" alt="Temporary gift-card photo preview">` : ""}
       ${capture.candidates ? `<div class="capture-review"><b>Possible text (not verified)</b>${capture.candidates.brand ? `<span>Retailer: ${esc(brandName({ brand: capture.candidates.brand }))}</span>` : ""}${capture.candidates.original ? `<span>Printed face value: ${money(Number(capture.candidates.original))}</span>` : ""}${capture.candidates.expires ? `<span>Expiry: ${esc(capture.candidates.expires)}</span>` : ""}<span>Remaining balance: not read — enter it yourself.</span></div>` : ""}
       <div class="capture-actions">
+        ${capture.status === "live-unavailable" ? `<button class="btn primary sm" type="button" data-act="capture-scan">Retry controlled scanner</button><button class="btn ghost sm" type="button" data-act="capture-scan-auto">Use automatic scanner</button><button class="btn ghost sm" type="button" data-act="manual-entry">Enter manually</button>` : ""}
         ${capture.status === "scan-choice" ? (capture.options || []).map(o => `<button class="btn ghost sm" type="button" data-act="capture-choose" data-index="${o.index}">Code ending ${esc(o.maskedValue.slice(-4))}</button>`).join("") + `<button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button>` : ""}
         ${capture.status === "scan-result" ? `<button class="btn primary sm" type="button" data-act="capture-apply-scan">${capture.brand ? "Confirm and use retailer" : "Confirm scan"}</button><button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button><button class="btn ghost sm" type="button" data-act="capture-clear">Not my card</button>` : ""}
         ${["no-result", "cancelled", "error", "permission-denied", "unsupported"].includes(capture.status) ? `<button class="btn ghost sm" type="button" data-act="capture-scan">Retry scan</button>` : ""}
@@ -2132,6 +2133,7 @@ const ACTIONS = {
     }
   },
   "capture-scan": () => { void cardCapture.scanLive(); },
+  "capture-scan-auto": () => { void cardCapture.scan(); },
   "capture-live-take": () => { void cardCapture.captureLive(); },
   "capture-live-cancel": () => { void cardCapture.cancelLive(); },
   "capture-choose": d => { cardCapture.chooseBarcode(d.index); },
