@@ -362,6 +362,29 @@ body.in-app::before{display:none}
 .hero h1{max-width:12ch}
 @media (max-width:820px){.arcs{width:330px;height:330px}.step .n{font-size:44px}}
 .nav-r .txt{white-space:nowrap}
+/* App-like layout: installed app and narrow screens get a focused welcome and sign-in flow. */
+body.app-like .home{display:flex;flex-direction:column;min-height:100%;padding-top:0}
+body.app-like .nav{height:60px}
+body.app-like .nav-r .txt:not(.hide-sm){display:none}
+body.app-like .hero{flex:1;display:flex;flex-direction:column-reverse;justify-content:center;gap:0;padding-top:4px;padding-bottom:8px;text-align:center}
+body.app-like .hero h1{font-size:clamp(30px,8.4vw,38px);line-height:1.05;margin:0 auto 10px;max-width:14ch}
+body.app-like .hero p{font-size:16px;margin:0 auto 18px;max-width:30ch}
+body.app-like .hero .cta{position:sticky;bottom:0;z-index:5;flex-direction:column;gap:10px;padding:10px 0 calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 78%,transparent)}
+body.app-like .hero .cta .btn{width:100%;height:54px;font-size:17px}
+body.app-like .fan{height:260px;margin:0 -8px}
+body.app-like .fan .gcard{width:200px}
+body.app-like .arcs{width:280px;height:280px}
+body.app-like .steps,body.app-like .band,body.app-like .closing{display:none}
+body.app-like .footer{padding:10px 0 calc(16px + env(safe-area-inset-bottom,0px));font-size:12px}
+body.app-like .footer .wrap{justify-content:center;align-items:center;gap:6px 14px;text-align:center}
+body.app-like .footer .wrap>div,body.app-like .footer .footer-note{display:none}
+body.app-like .auth{justify-content:flex-start;padding:max(14px,env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px))}
+body.app-like .auth-top{margin-bottom:22px}
+body.app-like .auth-back-txt{display:none}
+body.app-like .auth-back{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--line);font-size:20px;text-decoration:none}
+body.app-like .auth .btn.primary{height:54px;font-size:17px}
+@media (max-width:360px){body.app-like .fan{height:220px}body.app-like .fan .gcard{width:172px}}
+@media (max-height:640px){body.app-like .fan{display:none}}
 @media (max-width:420px){.nav .wordmark{font-size:20px}.nav .mark{width:28px;height:28px}.nav-r{gap:4px}.nav-r .txt{padding:10px 8px}}
 .ruby-fab{position:absolute;right:16px;bottom:78px;z-index:4;display:flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:var(--brand);color:var(--brand-ink);font-weight:750;box-shadow:0 6px 18px -6px rgba(18,183,106,.65)}
 .ruby-top{justify-content:space-between;align-items:flex-end}
@@ -917,6 +940,8 @@ const cardCapture = createCardCapture({
     if (state.status === "scan-result") {
       ui.add.captureMethod = "barcode";
       ui.add.captureConfirmed = false;
+    } else if (state.status === "scan-choice") {
+      ui.add.captureConfirmed = false;
     } else if (["recognizing", "photo-ready", "photo-unreadable"].includes(state.status)) {
       ui.add.captureMethod = "photo";
       ui.add.captureConfirmed = false;
@@ -971,6 +996,7 @@ function render() {
   root.innerHTML = html;
   if (r.parts[0] === "app" && r.parts[1] === "ruby" && a && !a.demo && supabaseConfigured) void loadRubyHistory(a.id);
   document.body.classList.toggle("in-app", r.parts[0] === "app");
+  document.body.classList.toggle("app-like", Capacitor.isNativePlatform() || window.matchMedia("(max-width:820px)").matches);
   ui.lastPath = r.path; ui.sheetNew = false;
 
   if (same) {
@@ -1255,7 +1281,8 @@ function vAdd(a) {
       ${capture.previewUrl ? `<img class="capture-preview" src="${esc(capture.previewUrl)}" alt="Temporary gift-card photo preview">` : ""}
       ${capture.candidates ? `<div class="capture-review"><b>Possible text (not verified)</b>${capture.candidates.brand ? `<span>Retailer: ${esc(brandName({ brand: capture.candidates.brand }))}</span>` : ""}${capture.candidates.original ? `<span>Printed face value: ${money(Number(capture.candidates.original))}</span>` : ""}${capture.candidates.expires ? `<span>Expiry: ${esc(capture.candidates.expires)}</span>` : ""}<span>Remaining balance: not read — enter it yourself.</span></div>` : ""}
       <div class="capture-actions">
-        ${capture.status === "scan-result" ? `<button class="btn primary sm" type="button" data-act="capture-apply-scan">Use retailer suggestion</button><button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button>` : ""}
+        ${capture.status === "scan-choice" ? (capture.options || []).map(o => `<button class="btn ghost sm" type="button" data-act="capture-choose" data-index="${o.index}">Code ending ${esc(o.maskedValue.slice(-4))}</button>`).join("") + `<button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button>` : ""}
+        ${capture.status === "scan-result" ? `<button class="btn primary sm" type="button" data-act="capture-apply-scan">${capture.brand ? "Confirm and use retailer" : "Confirm scan"}</button><button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button><button class="btn ghost sm" type="button" data-act="capture-clear">Not my card</button>` : ""}
         ${["no-result", "cancelled", "error", "permission-denied", "unsupported"].includes(capture.status) ? `<button class="btn ghost sm" type="button" data-act="capture-scan">Retry scan</button>` : ""}
         ${capture.status === "permission-denied" ? `<button class="btn ghost sm" type="button" data-act="capture-open-settings">Open Settings</button>` : ""}
         ${capture.status === "photo-ready" && capture.candidates && (capture.candidates.brand || capture.candidates.original || capture.candidates.expires) ? `<button class="btn primary sm" type="button" data-act="capture-apply-ocr">Apply suggestions</button>` : ""}
@@ -1509,7 +1536,7 @@ function vAuth(mode) {
   const pwType = ui.showPw ? "text" : "password";
   const title = login ? "Log in" : reset ? "Reset your password" : update ? "Choose a new password" : "Create your account";
   return `<div class="auth"><div class="auth-in">
-    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a><a class="link" href="#/">Back to home</a></div>
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a>    <a class="link auth-back" href="#/" aria-label="Back to home"><span aria-hidden="true">&larr;</span><span class="auth-back-txt"> Back to home</span></a></div>
     <h1>${title}</h1>
     <p class="lead">${login ? "Welcome back. Your cards are where you left them." : reset ? "We'll email you a secure password-reset link." : update ? "Choose a password you haven't used before." : "Keep every gift card balance in one place. It takes a minute."}</p>
     ${loopbackAuthOrigin && (login || mode === "signup" || reset) ? `<p class="hint" role="status">This local address only works on this computer. Confirmation and reset links sent from here will not open on your phone. To use email links on Android or iPhone, open WalletSwap in its installed app or on a real HTTPS website before requesting the email.</p>` : ""}
@@ -1581,7 +1608,7 @@ function vHome(a) {
       <button class="home-help" type="button" data-act="tutorial-open" aria-label="Open WalletSwap help tutorial">${icon("help", 19)}</button>
       ${a ? `<a class="btn primary sm" href="#/app/wallet">Open my wallet</a>` : `<a class="txt" href="#/login">Log in</a><a class="btn primary sm" href="#/signup">Get started</a>`}</nav></header>
   <section class="wrap hero">
-    <div>
+    <div class="hero-copy">
       <h1>Every gift card you own, in one wallet.</h1>
       <p>See what's left on each card, spend it before it's forgotten, and sell the ones you won't use. Or buy new cards for less than they're worth.</p>
       <div class="cta">${cta}</div>
@@ -1603,7 +1630,7 @@ function vHome(a) {
     <div class="list" aria-label="Example listings">${sample.map(l => listingRow(l, false)).join("")}</div>
   </div></section>
   <section class="wrap closing"><h2>Stop leaving money on gift cards.</h2><div class="cta" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${cta}</div></section>
-  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a>${LINKEDIN_URL ? `<a class="link" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="WalletSwap on LinkedIn (opens in a new tab)">LinkedIn</a>` : ""}</div></footer>
+  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span class="footer-note">Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a>${LINKEDIN_URL ? `<a class="link" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="WalletSwap on LinkedIn (opens in a new tab)">LinkedIn</a>` : ""}</div></footer>
   ${tutorial}</div>`;
 }
 function renderTutorial() {
@@ -2071,6 +2098,8 @@ const ACTIONS = {
     }
   },
   "capture-scan": () => { void cardCapture.scan(); },
+  "capture-choose": d => { cardCapture.chooseBarcode(d.index); },
+  "capture-clear": () => { cardCapture.clearScan(); ui.add.captureMethod = ""; ui.add.captureConfirmed = false; },
   "capture-photo": () => { void cardCapture.takePhoto(); },
   "capture-open-settings": () => {
     if (Capacitor.isNativePlatform()) {

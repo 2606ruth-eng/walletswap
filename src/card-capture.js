@@ -14,6 +14,8 @@ const BARCODE_FORMATS = [
   "UPC_E",
 ];
 
+const MIN_BARCODE_LENGTH = 6;
+
 const RETAILERS = [
   ["amazon", /\bamazon\b/i],
   ["apple", /\bapple\b/i],
@@ -117,6 +119,7 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
   let currentPreviewUrl = "";
   let currentObjectUrl = false;
   let state = { status: "idle" };
+  let pendingValues = [];
 
   const update = next => {
     state = next;
@@ -141,7 +144,27 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
     return isPermissionGranted(requested);
   };
 
+  const showScanResult = value => update({
+    status: "scan-result",
+    message: "Check the last 4 characters against your card. Nothing is applied until you confirm. The full value is not shown or saved; enter the card number manually if required.",
+    maskedValue: maskIdentifier(value),
+    brand: retailerFromText(value),
+  });
+
+  const chooseBarcode = index => {
+    const value = pendingValues[Number(index)];
+    if (!value) return false;
+    showScanResult(value);
+    return true;
+  };
+
+  const clearScan = () => {
+    pendingValues = [];
+    update({ status: "idle" });
+  };
+
   const scan = async () => {
+    pendingValues = [];
     if (!isNative) {
       update({ status: "unsupported", message: "Camera scanning isn't available in this browser. Enter the card details manually instead." });
       return;
@@ -158,18 +181,25 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
       }
       update({ status: "scanning", message: "Point the camera at the barcode or QR code." });
       const { barcodes = [] } = await scanner.scan({ formats: BARCODE_FORMATS });
-      const barcode = barcodes[0];
-      const value = String(barcode?.rawValue || barcode?.displayValue || "").trim();
-      if (!value) {
-        update({ status: "no-result", message: "No barcode was read. Try scanning again or enter the details manually." });
+      const values = [];
+      for (const barcode of barcodes) {
+        const value = String(barcode?.rawValue || barcode?.displayValue || "").trim();
+        if (value.replace(/\s/g, "").length >= MIN_BARCODE_LENGTH && !values.includes(value)) values.push(value);
+      }
+      pendingValues = values;
+      if (!values.length) {
+        update({ status: "no-result", message: "No usable barcode was read. Try scanning again or enter the details manually." });
         return;
       }
-      update({
-        status: "scan-result",
-        message: "Code read on this device. The full value is not shown or saved; enter the card number manually if required.",
-        maskedValue: maskIdentifier(value),
-        brand: retailerFromText(value),
-      });
+      if (values.length > 1) {
+        update({
+          status: "scan-choice",
+          message: `${values.length} different codes were detected. Pick the one printed on your card, or scan again.`,
+          options: values.map((value, index) => ({ index, maskedValue: maskIdentifier(value), brand: retailerFromText(value) })),
+        });
+        return;
+      }
+      showScanResult(values[0]);
     } catch (error) {
       if (isCancellation(error)) {
         update({ status: "cancelled", message: "Scanning was cancelled. Retry or enter the details manually." });
@@ -260,5 +290,5 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
     }
   };
 
-  return { scan, takePhoto, discardPhoto, get state() { return { ...state }; } };
+  return { scan, chooseBarcode, clearScan, takePhoto, discardPhoto, get state() { return { ...state }; } };
 }

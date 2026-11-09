@@ -122,6 +122,41 @@ test("an unreadable barcode offers a retry without retaining a scanned value", a
   assert.match(getState().message, /Try scanning again/);
 });
 
+const scannerReturning = barcodes => ({
+  checkPermissions: async () => ({ camera: "granted" }),
+  requestPermissions: async () => ({ camera: "granted" }),
+  scan: async () => ({ barcodes }),
+});
+
+test("multiple different barcodes require an explicit choice and never auto-select", async () => {
+  const { capture, getState } = makeCapture({ scanner: scannerReturning([{ rawValue: "1111222233334444" }, { rawValue: "9999888877776666" }]) });
+  await capture.scan();
+  assert.equal(getState().status, "scan-choice");
+  assert.deepEqual(getState().options.map(o => o.maskedValue.slice(-4)), ["4444", "6666"]);
+  assert.equal(JSON.stringify(getState()).includes("1111222233334444"), false);
+  assert.equal(capture.chooseBarcode(1), true);
+  assert.equal(getState().status, "scan-result");
+  assert.equal(getState().maskedValue.slice(-4), "6666");
+  assert.equal(capture.chooseBarcode(7), false);
+});
+
+test("duplicate reads collapse and too-short codes are rejected", async () => {
+  const dup = makeCapture({ scanner: scannerReturning([{ rawValue: "1234567890" }, { rawValue: "1234567890" }]) });
+  await dup.capture.scan();
+  assert.equal(dup.getState().status, "scan-result");
+  const short = makeCapture({ scanner: scannerReturning([{ rawValue: "12" }]) });
+  await short.capture.scan();
+  assert.equal(short.getState().status, "no-result");
+});
+
+test("clearing a scan drops pending values", async () => {
+  const { capture, getState } = makeCapture({ scanner: scannerReturning([{ rawValue: "1111222233334444" }, { rawValue: "9999888877776666" }]) });
+  await capture.scan();
+  capture.clearScan();
+  assert.equal(getState().status, "idle");
+  assert.equal(capture.chooseBarcode(0), false);
+});
+
 test("scanner cancellation is recoverable", async () => {
   const { capture, getState } = makeCapture({
     scanner: {
