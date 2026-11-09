@@ -14,7 +14,7 @@ const BARCODE_FORMATS = [
   "UPC_E",
 ];
 
-const MIN_BARCODE_LENGTH = 6;
+const LIVE_DETECTION_TTL_MS = 2000;
 
 const RETAILERS = [
   ["amazon", /\bamazon\b/i],
@@ -114,12 +114,13 @@ function isCancellation(error) {
   return /cancel/i.test(String(error?.code || error?.message || ""));
 }
 
-export function createCardCapture({ camera, scanner, textRecognition, filesystem, isNative, onState }) {
+export function createCardCapture({ camera, scanner, textRecognition, filesystem, isNative, onState, now = Date.now }) {
   let currentPhotoPath = "";
   let currentPreviewUrl = "";
   let currentObjectUrl = false;
   let state = { status: "idle" };
   let pendingValues = [];
+  let live = null;
 
   const update = next => {
     state = next;
@@ -181,34 +182,122 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
       }
       update({ status: "scanning", message: "Point the camera at the barcode or QR code." });
       const { barcodes = [] } = await scanner.scan({ formats: BARCODE_FORMATS });
-      const values = [];
-      for (const barcode of barcodes) {
-        const value = String(barcode?.rawValue || barcode?.displayValue || "").trim();
-        if (value.replace(/\s/g, "").length >= MIN_BARCODE_LENGTH && !values.includes(value)) values.push(value);
-      }
-      pendingValues = values;
-      if (!values.length) {
-        update({ status: "no-result", message: "No usable barcode was read. Try scanning again or enter the details manually." });
-        return;
-      }
-      if (values.length > 1) {
-        update({
-          status: "scan-choice",
-          message: `${values.length} different codes were detected. Pick the one printed on your card, or scan again.`,
-          options: values.map((value, index) => ({ index, maskedValue: maskIdentifier(value), brand: retailerFromText(value) })),
-        });
-        return;
-      }
-      showScanResult(values[0]);
+      finishValues(extractValues(barcodes));
     } catch (error) {
-      if (isCancellation(error)) {
-        update({ status: "cancelled", message: "Scanning was cancelled. Retry or enter the details manually." });
-      } else if (/permission/i.test(String(error?.code || error?.message || ""))) {
-        update({ status: "permission-denied", message: "Camera access was denied. Allow camera access in Settings or enter the card details manually." });
-      } else {
-        update({ status: "error", message: "The scanner couldn't start. Retry or enter the details manually." });
-      }
+      reportScanError(error);
     }
+  };
+
+  const extractValues = barcodes => {
+    const values = [];
+    for (const barcode of barcodes || []) {
+      const value = String(barcode?.rawValue || barcode?.displayValue || "").trim();
+      if (value && !values.includes(value)) values.push(value);
+    }
+    return values;
+  };
+
+  const finishValues = values => {
+    pendingValues = values;
+    if (!values.length) {
+      update({ status: "no-result", message: "No usable barcode was read. Try scanning again or enter the details manually." });
+      return;
+    }
+    if (values.length > 1) {
+      update({
+        status: "scan-choice",
+        message: `${values.length} different codes were detected. Pick the one printed on your card, or scan again.`,
+        options: values.map((value, index) => ({ index, maskedValue: maskIdentifier(value), brand: retailerFromText(value) })),
+      });
+      return;
+    }
+    showScanResult(values[0]);
+  };
+
+  const reportScanError = error => {
+    if (isCancellation(error)) {
+      update({ status: "cancelled", message: "Scanning was cancelled. Retry or enter the details manually." });
+    } else if (/permission/i.test(String(error?.code || error?.message || ""))) {
+      update({ status: "permission-denied", message: "Camera access was denied. Allow camera access in Settings or enter the card details manually." });
+    } else {
+      update({ status: "error", message: "The scanner couldn't start. Retry or enter the details manually." });
+    }
+  };
+
+  const stopLive = async () => {
+    const session = live;
+    live = null;
+    if (!session) return;
+    try { await scanner.stopScan(); } catch { /* scanner may already be stopped */ }
+    for (const handle of session.handles) {
+      try { await handle.remove(); } catch { /* listener already removed */ }
+    }
+  };
+
+  // User-controlled capture: the camera previews until the user taps Capture, so detection never picks a code on its own.
+  const scanLive = async () => {
+    if (!scanner.startScan || !scanner.addListener || !scanner.stopScan) return scan();
+    if (live) return;
+    pendingValues = [];
+    if (!isNative) {
+      update({ status: "unsupported", message: "Camera scanning isn't available in this browser. Enter the card details manually instead." });
+      return;
+    }
+    update({ status: "scanning", message: "Requesting camera access…" });
+    const session = { handles: [], detected: [], at: 0, preview: "" };
+    try {
+      if (!(await checkCameraPermission(scanner))) {
+        update({ status: "permission-denied", message: "Camera access was denied. Allow camera access in Settings or enter the card details manually." });
+        return;
+      }
+      live = session;
+      session.handles.push(await scanner.addListener("barcodesScanned", event => {
+        if (live !== session) return;
+        session.detected = extractValues(event?.barcodes);
+        session.at = session.detected.length ? now() : 0;
+        const preview = session.detected.map(maskIdentifier).join(",");
+        if (preview === session.preview) return;
+        session.preview = preview;
+        update({ status: "live-scanning", message: liveMessage(session.detected.length), detected: session.detected.map(maskIdentifier) });
+      }));
+      session.handles.push(await scanner.addListener("scanError", () => {
+        if (live !== session) return;
+        void stopLive().then(() => update({ status: "error", message: "The scanner stopped unexpectedly. Retry or enter the details manually." }));
+      }));
+      await scanner.startScan({ formats: BARCODE_FORMATS });
+      if (live === session) update({ status: "live-scanning", message: liveMessage(0), detected: [] });
+    } catch (error) {
+      const wasLive = live === session;
+      await stopLive();
+      if (wasLive && !isCancellation(error) && !/permission/i.test(String(error?.code || error?.message || ""))) {
+        await scan();
+        return;
+      }
+      reportScanError(error);
+    }
+  };
+
+  const liveMessage = count => count === 0
+    ? "Aim the camera at the barcode. Nothing is selected until you tap Capture."
+    : `${count} code${count > 1 ? "s" : ""} in view. Tap Capture when the right one is steady.`;
+
+  const captureLive = async () => {
+    const session = live;
+    if (!session) return false;
+    if (!session.detected.length || now() - session.at > LIVE_DETECTION_TTL_MS) {
+      update({ status: "live-scanning", message: "No barcode in view right now. Hold steady on the barcode, then tap Capture again.", detected: [] });
+      return false;
+    }
+    const values = session.detected;
+    await stopLive();
+    finishValues(values);
+    return true;
+  };
+
+  const cancelLive = async () => {
+    if (!live) return;
+    await stopLive();
+    update({ status: "cancelled", message: "Scanning was cancelled. Retry or enter the details manually." });
   };
 
   const takePhoto = async () => {
@@ -290,5 +379,5 @@ export function createCardCapture({ camera, scanner, textRecognition, filesystem
     }
   };
 
-  return { scan, chooseBarcode, clearScan, takePhoto, discardPhoto, get state() { return { ...state }; } };
+  return { scan, scanLive, captureLive, cancelLive, chooseBarcode, clearScan, takePhoto, discardPhoto, get state() { return { ...state }; } };
 }

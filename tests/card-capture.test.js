@@ -140,13 +140,102 @@ test("multiple different barcodes require an explicit choice and never auto-sele
   assert.equal(capture.chooseBarcode(7), false);
 });
 
-test("duplicate reads collapse and too-short codes are rejected", async () => {
+test("duplicate reads collapse, short valid codes are kept and blank reads are rejected", async () => {
   const dup = makeCapture({ scanner: scannerReturning([{ rawValue: "1234567890" }, { rawValue: "1234567890" }]) });
   await dup.capture.scan();
   assert.equal(dup.getState().status, "scan-result");
-  const short = makeCapture({ scanner: scannerReturning([{ rawValue: "12" }]) });
+  const short = makeCapture({ scanner: scannerReturning([{ rawValue: "1234567" }]) });
   await short.capture.scan();
-  assert.equal(short.getState().status, "no-result");
+  assert.equal(short.getState().status, "scan-result");
+  const blank = makeCapture({ scanner: scannerReturning([{ rawValue: "  " }]) });
+  await blank.capture.scan();
+  assert.equal(blank.getState().status, "no-result");
+});
+
+function liveScanner({ failStart = false } = {}) {
+  const calls = { start: 0, stop: 0, removed: 0 };
+  const listeners = {};
+  return {
+    calls,
+    emit: (name, event) => listeners[name]?.(event),
+    checkPermissions: async () => ({ camera: "granted" }),
+    requestPermissions: async () => ({ camera: "granted" }),
+    scan: async () => ({ barcodes: [{ rawValue: "FALLBACK12345" }] }),
+    startScan: async () => { calls.start++; if (failStart) throw new Error("camera busy"); },
+    stopScan: async () => { calls.stop++; },
+    addListener: async (name, fn) => { listeners[name] = fn; return { remove: async () => { calls.removed++; } }; },
+  };
+}
+
+test("live scanning waits for an explicit Capture tap and then stops the camera", async () => {
+  const scanner = liveScanner();
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  assert.equal(getState().status, "live-scanning");
+  scanner.emit("barcodesScanned", { barcodes: [{ rawValue: "1234567890123456" }] });
+  assert.equal(getState().status, "live-scanning");
+  assert.equal(getState().detected[0].slice(-4), "3456");
+  assert.equal(JSON.stringify(getState()).includes("1234567890123456"), false);
+  assert.equal(await capture.captureLive(), true);
+  assert.equal(getState().status, "scan-result");
+  assert.deepEqual(scanner.calls, { start: 1, stop: 1, removed: 2 });
+});
+
+test("live capture with nothing in view or a stale detection keeps scanning", async () => {
+  let clock = 1000;
+  const scanner = liveScanner();
+  const { capture, getState } = makeCapture({ scanner, now: () => clock });
+  await capture.scanLive();
+  assert.equal(await capture.captureLive(), false);
+  scanner.emit("barcodesScanned", { barcodes: [{ rawValue: "1234567890" }] });
+  clock += 5000;
+  assert.equal(await capture.captureLive(), false);
+  assert.equal(getState().status, "live-scanning");
+  assert.equal(scanner.calls.stop, 0);
+});
+
+test("live capture of several codes asks the user to choose", async () => {
+  const scanner = liveScanner();
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  scanner.emit("barcodesScanned", { barcodes: [{ rawValue: "1111222233" }, { rawValue: "9999888877" }] });
+  await capture.captureLive();
+  assert.equal(getState().status, "scan-choice");
+});
+
+test("cancelling live scanning releases the camera and listeners", async () => {
+  const scanner = liveScanner();
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  await capture.cancelLive();
+  assert.equal(getState().status, "cancelled");
+  assert.deepEqual(scanner.calls, { start: 1, stop: 1, removed: 2 });
+  scanner.emit("barcodesScanned", { barcodes: [{ rawValue: "1234567890" }] });
+  assert.equal(getState().status, "cancelled");
+});
+
+test("scanError and startScan failures clean up and fall back safely", async () => {
+  const errored = liveScanner();
+  const a = makeCapture({ scanner: errored });
+  await a.capture.scanLive();
+  errored.emit("scanError", { message: "boom" });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(a.getState().status, "error");
+  assert.equal(errored.calls.removed, 2);
+
+  const failing = liveScanner({ failStart: true });
+  const b = makeCapture({ scanner: failing });
+  await b.capture.scanLive();
+  assert.equal(b.getState().status, "scan-result");
+  assert.equal(failing.calls.removed, 2);
+});
+
+test("live scanning denies permission without starting the camera", async () => {
+  const scanner = { ...liveScanner(), checkPermissions: async () => ({ camera: "denied" }), requestPermissions: async () => ({ camera: "denied" }) };
+  const { capture, getState } = makeCapture({ scanner });
+  await capture.scanLive();
+  assert.equal(getState().status, "permission-denied");
+  assert.equal(scanner.calls.start, 0);
 });
 
 test("clearing a scan drops pending values", async () => {

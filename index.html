@@ -362,6 +362,16 @@ body.in-app::before{display:none}
 .hero h1{max-width:12ch}
 @media (max-width:820px){.arcs{width:330px;height:330px}.step .n{font-size:44px}}
 .nav-r .txt{white-space:nowrap}
+/* Live scanner: the native camera renders behind the WebView, so the page itself must be transparent. */
+html:has(body.scanner-live),body.scanner-live{background:transparent!important}
+body.scanner-live #root,body.scanner-live #toasts{visibility:hidden}
+#scan-overlay{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+#scan-overlay .scan-frame{position:absolute;left:10%;right:10%;top:22%;height:26%;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+#scan-overlay .scan-panel{pointer-events:auto;background:var(--surface);color:var(--ink);padding:16px 20px calc(16px + env(safe-area-inset-bottom,0px));border-radius:22px 22px 0 0}
+#scan-overlay .scan-panel p{margin:0 0 10px}
+#scan-overlay .scan-code{display:inline-block;margin:0 6px 8px 0;padding:4px 10px;border-radius:999px;background:var(--brand-soft);font-variant-numeric:tabular-nums}
+#scan-overlay .scan-actions{display:flex;gap:10px}
+#scan-overlay .scan-actions .btn{flex:1}
 /* App-like layout: installed app and narrow screens get a focused welcome and sign-in flow. */
 body.app-like .home{display:flex;flex-direction:column;min-height:100%;padding-top:0}
 body.app-like .nav{height:60px}
@@ -931,12 +941,18 @@ const cardCapture = createCardCapture({
       if (!available) await BarcodeScanner.installGoogleBarcodeScannerModule();
     },
     scan: () => BarcodeScanner.scan({ formats: Object.values(BarcodeFormat) }),
+    startScan: options => BarcodeScanner.startScan({ ...options, formats: Object.values(BarcodeFormat) }).then(() => document.body.classList.add("scanner-live")),
+    stopScan: async () => { document.body.classList.remove("scanner-live"); await BarcodeScanner.stopScan(); },
+    addListener: (name, fn) => BarcodeScanner.addListener(name, fn),
   },
   textRecognition: { processImage: options => TextRecognition.processImage({ ...options, script: Script.Latin }) },
   filesystem: { deleteFile: options => Filesystem.deleteFile(options) },
   isNative: Capacitor.isNativePlatform(),
   onState: state => {
+    const wasLive = ui.capture?.status === "live-scanning";
     ui.capture = state;
+    syncScannerOverlay(state);
+    if (state.status === "live-scanning" && wasLive) return;
     if (state.status === "scan-result") {
       ui.add.captureMethod = "barcode";
       ui.add.captureConfirmed = false;
@@ -949,6 +965,24 @@ const cardCapture = createCardCapture({
     if (parseRoute().path === "/app/add") render();
   },
 });
+
+function syncScannerOverlay(state) {
+  let overlay = document.getElementById("scan-overlay");
+  if (state.status !== "live-scanning") {
+    document.body.classList.remove("scanner-live");
+    overlay?.remove();
+    return;
+  }
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "scan-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Barcode scanner");
+    document.body.appendChild(overlay);
+  }
+  const found = (state.detected || []).map(m => `<span class="scan-code">${esc(m)}</span>`).join("");
+  overlay.innerHTML = `<div class="scan-frame" aria-hidden="true"></div><div class="scan-panel"><p aria-live="polite">${esc(state.message || "")}</p><div class="scan-found">${found}</div><div class="scan-actions"><button class="btn primary" type="button" data-act="capture-live-take">Capture</button><button class="btn ghost" type="button" data-act="capture-live-cancel">Cancel</button></div></div>`;
+}
 
 function parseRoute() {
   const h = (location.hash || "#/").slice(1) || "/";
@@ -2097,7 +2131,9 @@ const ACTIONS = {
       toast(`${result.importedCount} of ${result.sourceCount} local card records imported. Credentials were not transferred.`);
     }
   },
-  "capture-scan": () => { void cardCapture.scan(); },
+  "capture-scan": () => { void cardCapture.scanLive(); },
+  "capture-live-take": () => { void cardCapture.captureLive(); },
+  "capture-live-cancel": () => { void cardCapture.cancelLive(); },
   "capture-choose": d => { cardCapture.chooseBarcode(d.index); },
   "capture-clear": () => { cardCapture.clearScan(); ui.add.captureMethod = ""; ui.add.captureConfirmed = false; },
   "capture-photo": () => { void cardCapture.takePhoto(); },
@@ -2645,6 +2681,12 @@ window.addEventListener("hashchange", () => {
   render();
   window.scrollTo(0, 0);
 });
+
+/* Release the camera whenever the live scanner loses the foreground or the user navigates away. */
+const stopLiveScan = () => { if (ui.capture?.status === "live-scanning") void cardCapture.cancelLive(); };
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopLiveScan(); });
+window.addEventListener("pagehide", stopLiveScan);
+window.addEventListener("hashchange", stopLiveScan);
 
 function applyTheme() {
   const t = S && S.theme;
