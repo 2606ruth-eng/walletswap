@@ -124,7 +124,7 @@ test("browser callback routing recovers the session and preserves password recov
   assert.match(appSource, /const session = await getAuthSession\(\)/);
   assert.match(authSource, /export async function getAuthenticatedUser\(\)/);
   assert.match(authSource, /requireSupabase\(\)\.auth\.getUser\(\)/);
-  assert.match(appSource, /const authenticatedUser = await getAuthenticatedUser\(\)/);
+  assert.match(appSource, /resolveRestoredSession\(session, getAuthenticatedUser\)/);
   assert.match(appSource, /event === "PASSWORD_RECOVERY"/);
   assert.match(authSource, /emailRedirectTo:\s*authRedirectUrl\(\)/);
   assert.match(authSource, /redirectTo:\s*authRedirectUrl\("recovery"\)/);

@@ -362,6 +362,39 @@ body.in-app::before{display:none}
 .hero h1{max-width:12ch}
 @media (max-width:820px){.arcs{width:330px;height:330px}.step .n{font-size:44px}}
 .nav-r .txt{white-space:nowrap}
+/* Live scanner: the native camera renders behind the WebView, so the page itself must be transparent. */
+html:has(body.scanner-live),body.scanner-live{background:transparent!important}
+body.scanner-live #root,body.scanner-live #toasts{visibility:hidden}
+#scan-overlay{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+#scan-overlay .scan-frame{position:absolute;left:10%;right:10%;top:22%;height:26%;border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+#scan-overlay .scan-panel{pointer-events:auto;background:var(--surface);color:var(--ink);padding:16px 20px calc(16px + env(safe-area-inset-bottom,0px));border-radius:22px 22px 0 0}
+#scan-overlay .scan-panel p{margin:0 0 10px}
+#scan-overlay .scan-code{display:inline-block;margin:0 6px 8px 0;padding:4px 10px;border-radius:999px;background:var(--brand-soft);font-variant-numeric:tabular-nums}
+#scan-overlay .scan-actions{display:flex;gap:10px}
+#scan-overlay .scan-actions .btn{flex:1}
+/* App-like layout: installed app and narrow screens get a focused welcome and sign-in flow. */
+body.app-like .home{display:flex;flex-direction:column;min-height:100%;padding-top:0}
+body.app-like .nav{height:60px}
+body.app-like .nav-r .txt:not(.hide-sm){display:none}
+body.app-like .hero{flex:1;display:flex;flex-direction:column-reverse;justify-content:center;gap:0;padding-top:4px;padding-bottom:8px;text-align:center}
+body.app-like .hero h1{font-size:clamp(30px,8.4vw,38px);line-height:1.05;margin:0 auto 10px;max-width:14ch}
+body.app-like .hero p{font-size:16px;margin:0 auto 18px;max-width:30ch}
+body.app-like .hero .cta{position:sticky;bottom:0;z-index:5;flex-direction:column;gap:10px;padding:10px 0 calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 78%,transparent)}
+body.app-like .hero .cta .btn{width:100%;height:54px;font-size:17px}
+body.app-like .fan{height:260px;margin:0 -8px}
+body.app-like .fan .gcard{width:200px}
+body.app-like .arcs{width:280px;height:280px}
+body.app-like .steps,body.app-like .band,body.app-like .closing{display:none}
+body.app-like .footer{padding:10px 0 calc(16px + env(safe-area-inset-bottom,0px));font-size:12px}
+body.app-like .footer .wrap{justify-content:center;align-items:center;gap:6px 14px;text-align:center}
+body.app-like .footer .wrap>div,body.app-like .footer .footer-note{display:none}
+body.app-like .auth{justify-content:flex-start;padding:max(14px,env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px))}
+body.app-like .auth-top{margin-bottom:22px}
+body.app-like .auth-back-txt{display:none}
+body.app-like .auth-back{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--line);font-size:20px;text-decoration:none}
+body.app-like .auth .btn.primary{height:54px;font-size:17px}
+@media (max-width:360px){body.app-like .fan{height:220px}body.app-like .fan .gcard{width:172px}}
+@media (max-height:640px){body.app-like .fan{display:none}}
 @media (max-width:420px){.nav .wordmark{font-size:20px}.nav .mark{width:28px;height:28px}.nav-r{gap:4px}.nav-r .txt{padding:10px 8px}}
 .ruby-fab{position:absolute;right:16px;bottom:78px;z-index:4;display:flex;align-items:center;gap:7px;padding:11px 15px;border-radius:999px;background:var(--brand);color:var(--brand-ink);font-weight:750;box-shadow:0 6px 18px -6px rgba(18,183,106,.65)}
 .ruby-top{justify-content:space-between;align-items:flex-end}
@@ -398,6 +431,15 @@ body.in-app::before{display:none}
 .tour-dialog h3{margin:0 0 8px;font-size:20px}
 .tour-dialog p{color:var(--ink2);line-height:1.55}
 .tour-actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}
+.tour-coach{position:fixed;z-index:110;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100% - 24px));background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.28);outline:none}
+.tour-coach h3{margin:0 0 6px;font-size:18px}
+.tour-coach p{color:var(--ink2);line-height:1.5;margin:0 0 6px}
+.tour-coach .tour-progress{margin:0;flex:1}
+.tour-coach .tour-actions{margin-top:12px}
+.tour-show{margin-top:6px}
+.code-input{font-size:24px;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){.tour-coach{animation:tourIn .2s ease-out}}
+@keyframes tourIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .settings-intro{margin:0 0 16px;color:var(--muted)}
 .deletion-warning{padding:14px;border:1px solid var(--danger);border-radius:14px;background:color-mix(in srgb,var(--danger) 6%,var(--surface));margin:12px 0}
 .deletion-form{display:grid;gap:12px}
@@ -412,14 +454,18 @@ import { applyRecognizedDetails, createCardCapture, safeCardSnapshot, validateRe
 import { hasNativeCredentialVault, loadCardCredentials, protectCardCredentials, removeCardCredentials, storeCardCredentials } from "./src/credential-vault.js";
 import { authCallbackStatusFromUrl, classifyAuthCallbackError } from "./src/services/auth-callback.js";
 import { AUTH_CALLBACK_PATH, AUTH_RECOVERY_CALLBACK_PATH } from "./src/services/auth-redirect.js";
-import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName } from "./src/services/auth.js";
+import { getAuthSession, getAuthenticatedUser, registerAuthDeepLinks, registerAuthLifecycle, resendSignupConfirmation, sendPasswordReset, signIn as supabaseSignIn, signOut as supabaseSignOut, signUp as supabaseSignUp, updatePassword, updateProfileName, verifySignupCode } from "./src/services/auth.js";
+import { resolveRestoredSession } from "./src/services/session-restore.js";
 import { loadRemoteAccount } from "./src/services/app-data.js";
 import { createListing, cancelListing, getPublicListings, prepareSimulatedPurchase, updateListing } from "./src/services/marketplace.js";
 import { importLegacyWallet } from "./src/services/migration.js";
 import { markNotificationRead, notificationPreferenceErrorMessage, reportCardActivityProblem, requestLocalNotificationPermission, showStoredNotification, subscribeToNotifications, syncExpiryReminders, updateNotificationPreferences } from "./src/services/notifications.js";
 import { supabase, supabaseConfigError, supabaseConfigured } from "./src/services/supabase.js";
 import { buildDeletionRequestUrl } from "./src/account-deletion.js";
+import { LINKEDIN_COMPANY_URL } from "./src/social-links.js";
 import { HELP_STEPS } from "./src/help-tour.js";
+import { hasSeenOnboarding, markOnboardingSeen } from "./src/onboarding.js";
+import { classifyOtpError, normalizeOtpCode, resendSecondsRemaining, validateOtpCode } from "./src/services/auth-otp.js";
 import { isNearScrollEnd, scrollToLatest } from "./src/ruby-scroll.js";
 import { customRetailerId, normalizeRetailerSelection, rankRecentlyUsedRetailers } from "./src/retailer-preferences.js";
 import { approvedOfficialBalanceUrl, getRetailerVerification } from "./src/services/retailer-verification.js";
@@ -525,6 +571,7 @@ const cvars = b => `--c1:${b.c1};--c2:${b.c2};${b.ci ? "--ci:" + b.ci + ";" : ""
 /* walletswap brand mark: two overlapping rounded squares (ink + green) */
 const MARK = (s = 30) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 470 470" aria-hidden="true"><rect x="30" y="30" width="280" height="280" rx="70" fill="var(--mark-ink)"/><rect x="160" y="160" width="280" height="280" rx="70" fill="#12B76A"/></svg>`;
 const LOGO = (s = 30, cls = "") => `${MARK(s)}<span class="wordmark${cls}">walletswap</span>`;
+const LINKEDIN_URL = LINKEDIN_COMPANY_URL;
 const TAGLINE = "Buy, sell, and swap any gift card or voucher.";
 const tile = (b, label) => `<span class="tile" style="${cvars(b)}">${esc(initials(label || b.name).slice(0, 1))}</span>`;
 
@@ -596,14 +643,17 @@ const Store = {
             else if (acct() && !acct().demo) clearLocalSession("Signed out");
           }, 0);
         }).data.subscription;
+        this.removeAuthLifecycle = await registerAuthLifecycle({ onResume: () => void this.retryRestore() }).catch(() => null);
         const session = await getAuthSession();
         if (session?.user) {
-          const authenticatedUser = await getAuthenticatedUser();
-          if (!authenticatedUser) {
-            await supabase.auth.signOut();
+          const restored = await resolveRestoredSession(session, getAuthenticatedUser);
+          if (restored.action === "signout-local") {
+            await supabaseSignOut().catch(() => {});
             clearLocalSession("Your session expired. Please sign in again.");
             return;
           }
+          if (restored.action === "offline") toast("You appear to be offline. WalletSwap will reconnect automatically.");
+          const authenticatedUser = restored.user;
           const recovery = ui.authCallback.recovery || isAuthRecoveryRoute();
           const completingAuthCallback = callbackRoute || ui.authCallback.status !== "idle";
           if (ui.authCallback.status === "processing") ui.authCallback = { status: "confirmed", recovery };
@@ -622,7 +672,7 @@ const Store = {
           ui.authCallback = { ...classifyAuthCallbackError(error), recovery: true };
         } else {
           console.error("Supabase session initialization failed.");
-          toast("Cloud sign-in is temporarily unavailable. You can still use the demo wallet.");
+          toast("Cloud sign-in is temporarily unavailable. Your saved session is kept and will retry when you're back online.");
         }
       }
       return;
@@ -648,6 +698,23 @@ const Store = {
         this.pushCloud();
       }
     } catch (e) { console.warn("Cloud sync unavailable:", e && e.message); }
+  },
+  async retryRestore() {
+    if (!supabaseConfigured || this.restoring) return;
+    if (acct()) return;
+    this.restoring = true;
+    try {
+      const session = await getAuthSession();
+      if (!session?.user) return;
+      const restored = await resolveRestoredSession(session, getAuthenticatedUser);
+      if (restored.action === "signout-local") {
+        await supabaseSignOut().catch(() => {});
+        clearLocalSession("Your session expired. Please sign in again.");
+      } else if (restored.user) {
+        await activateRemoteUser(restored.user);
+      }
+    } catch { /* still offline; the next resume retries */ }
+    finally { this.restoring = false; }
   },
   writeLocal() {
     if (!this.local) return;
@@ -867,7 +934,7 @@ function seedDemoData() {
 }
 /* ================= ui state & router ================= */
 const blankAdd = () => ({ brand: "", brandName: "", number: "", pin: "", expires: "", original: "", balance: "", type: "Digital", nickname: "", captureMethod: "", captureConfirmed: false, retailerConfirmed: false });
-const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0 }, deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
+const ui = { sheet: null, sheetNew: false, q: "", bf: "all", sort: "discount", af: "all", cf: "active", add: blankAdd(), capture: { status: "idle" }, retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" }, ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", followLatest: true }, tutorial: { open: false, step: 0, mode: "help" }, otpSentAt: 0, onboardingChecked: "", deletion: { confirmed: false, email: "" }, f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "", authPendingEmail: "", authCallback: { status: "idle" }, showPw: false, lastPath: null, after: null };
 const cardCapture = createCardCapture({
   camera: {
     checkPermissions: () => Camera.checkPermissions(),
@@ -885,14 +952,22 @@ const cardCapture = createCardCapture({
       if (!available) await BarcodeScanner.installGoogleBarcodeScannerModule();
     },
     scan: () => BarcodeScanner.scan({ formats: Object.values(BarcodeFormat) }),
+    startScan: options => BarcodeScanner.startScan({ ...options, formats: Object.values(BarcodeFormat) }).then(() => document.body.classList.add("scanner-live")),
+    stopScan: async () => { document.body.classList.remove("scanner-live"); await BarcodeScanner.stopScan(); },
+    addListener: (name, fn) => BarcodeScanner.addListener(name, fn),
   },
   textRecognition: { processImage: options => TextRecognition.processImage({ ...options, script: Script.Latin }) },
   filesystem: { deleteFile: options => Filesystem.deleteFile(options) },
   isNative: Capacitor.isNativePlatform(),
   onState: state => {
+    const wasLive = ui.capture?.status === "live-scanning";
     ui.capture = state;
+    syncScannerOverlay(state);
+    if (state.status === "live-scanning" && wasLive) return;
     if (state.status === "scan-result") {
       ui.add.captureMethod = "barcode";
+      ui.add.captureConfirmed = false;
+    } else if (state.status === "scan-choice") {
       ui.add.captureConfirmed = false;
     } else if (["recognizing", "photo-ready", "photo-unreadable"].includes(state.status)) {
       ui.add.captureMethod = "photo";
@@ -901,6 +976,24 @@ const cardCapture = createCardCapture({
     if (parseRoute().path === "/app/add") render();
   },
 });
+
+function syncScannerOverlay(state) {
+  let overlay = document.getElementById("scan-overlay");
+  if (state.status !== "live-scanning") {
+    document.body.classList.remove("scanner-live");
+    overlay?.remove();
+    return;
+  }
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "scan-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Barcode scanner");
+    document.body.appendChild(overlay);
+  }
+  const found = (state.detected || []).map(m => `<span class="scan-code">${esc(m)}</span>`).join("");
+  overlay.innerHTML = `<div class="scan-frame" aria-hidden="true"></div><div class="scan-panel"><p aria-live="polite">${esc(state.message || "")}</p><div class="scan-found">${found}</div><div class="scan-actions"><button class="btn primary" type="button" data-act="capture-live-take">Capture</button><button class="btn ghost" type="button" data-act="capture-live-cancel">Cancel</button></div></div>`;
+}
 
 function parseRoute() {
   const h = (location.hash || "#/").slice(1) || "/";
@@ -939,8 +1032,8 @@ function render() {
     html = vAuthCallback(ui.authCallback, r.path === AUTH_RECOVERY_CALLBACK_PATH);
   } else if (r.path === "/account-deletion") {
     html = vPublicDeletion();
-  } else if (["login", "signup", "reset-password", "update-password"].includes(r.parts[0])) {
-    if (a && ["login", "signup"].includes(r.parts[0])) { location.replace("#/app/wallet"); return; }
+  } else if (["login", "signup", "reset-password", "update-password", "verify"].includes(r.parts[0])) {
+    if (a && ["login", "signup", "verify"].includes(r.parts[0])) { location.replace("#/app/wallet"); return; }
     html = vAuth(r.parts[0]);
   } else {
     html = vHome(a);
@@ -948,6 +1041,7 @@ function render() {
   root.innerHTML = html;
   if (r.parts[0] === "app" && r.parts[1] === "ruby" && a && !a.demo && supabaseConfigured) void loadRubyHistory(a.id);
   document.body.classList.toggle("in-app", r.parts[0] === "app");
+  document.body.classList.toggle("app-like", Capacitor.isNativePlatform() || window.matchMedia("(max-width:820px)").matches);
   ui.lastPath = r.path; ui.sheetNew = false;
 
   if (same) {
@@ -965,12 +1059,15 @@ function render() {
     const first = $(".sheet input, .sheet button.btn"); if (first) first.focus({ preventScroll: true });
   }
   ui.focusSheet = false;
+  maybeStartOnboarding(r, a);
+  syncTourOverlay();
   const titles = { wallet: "Wallet", cards: "All cards", card: "Card", add: "Add a card", market: "Marketplace", activity: "Activity", profile: "Profile", settings: "Settings", ruby: "Ruby" };
   document.title = r.parts[0] === "app" ? `${titles[r.parts[1] || "wallet"] || "Wallet"} – walletswap`
     : r.parts[0] === "login" ? "Log in – walletswap"
       : r.parts[0] === "signup" ? "Create account – walletswap"
         : r.parts[0] === "reset-password" ? "Reset password – walletswap"
-          : r.parts[0] === "update-password" ? "Update password – walletswap"
+        : r.parts[0] === "update-password" ? "Update password – walletswap"
+          : r.parts[0] === "verify" ? "Verify email – walletswap"
             : r.path === AUTH_CALLBACK_PATH || r.path === AUTH_RECOVERY_CALLBACK_PATH ? "Email confirmation – walletswap"
               : r.path === "/account-deletion" ? "Account deletion – walletswap"
             : "walletswap – buy, sell, and swap gift cards";
@@ -1130,7 +1227,7 @@ function vCard(a, id) {
   <div class="progress" role="progressbar" aria-label="Balance remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct}%"></i></div>
   <div class="pmeta"><span>${money(c.balance)} of ${money(c.original)} left</span><span>${origin}</span></div>
   <div class="notice">${icon(c.balanceVerification === "verified" ? "check" : "info", 18)}<span>${c.balanceVerification === "verified" ? `Provider-confirmed balance: ${money(c.latestProviderBalance ?? c.balance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.verificationProvider ? ` · ${esc(c.verificationProvider)}` : ""}${c.latestProviderVerifiedAt || c.verifiedAt ? ` · checked ${esc(new Date(c.latestProviderVerifiedAt || c.verifiedAt).toLocaleString())}` : ""}.` : `${c.verificationStatus === "VERIFICATION_FAILED" ? `Last check failed (${esc(c.verificationErrorCategory || "unknown")}). ` : ""}Balance reported by you; it has not been verified with the retailer.${c.lastBalanceObservedAt ? ` Last recorded ${esc(new Date(c.lastBalanceObservedAt).toLocaleString())}.` : ""}${c.latestProviderBalance !== null && c.latestProviderBalance !== undefined ? ` Previous provider-confirmed balance: ${money(c.latestProviderBalance)}${c.latestProviderCurrency ? ` ${esc(c.latestProviderCurrency)}` : ""}${c.latestProviderVerifiedAt ? ` on ${esc(new Date(c.latestProviderVerifiedAt).toLocaleString())}` : ""}.` : ""}`}${hasNativeCredentialVault() ? " Card credentials are stored in the device's secure storage." : " This browser does not persist full card credentials."}</span></div>
-  ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. Spending is paused while the card is listed.</span></div>` : ""}
+  ${listed ? `<div class="notice">${icon("tag", 18)}<span>Listed for <b>${money(c.listing.price)}</b>, waiting for a buyer. <b>Locked for sale in WalletSwap</b>: spending, edits and a second listing are blocked here until you unlist. This does not stop anyone from using the card at the original retailer.</span></div>` : ""}
   <div class="list" style="margin-top:14px">
     <div class="secret"><div class="rbody"><div class="s-k">Card number</div><div class="s-v">${revN && hasCredentials ? esc(groupNum(c.number)) : "•••• •••• •••• " + esc(cardLast4(c))}</div></div>
       ${hasCredentials ? `<button class="icon-btn" data-act="reveal" data-k="n${c.id}" aria-label="${revN ? "Hide" : "Show"} card number">${icon(revN ? "eyeoff" : "eye", 18)}</button>
@@ -1232,7 +1329,9 @@ function vAdd(a) {
       ${capture.previewUrl ? `<img class="capture-preview" src="${esc(capture.previewUrl)}" alt="Temporary gift-card photo preview">` : ""}
       ${capture.candidates ? `<div class="capture-review"><b>Possible text (not verified)</b>${capture.candidates.brand ? `<span>Retailer: ${esc(brandName({ brand: capture.candidates.brand }))}</span>` : ""}${capture.candidates.original ? `<span>Printed face value: ${money(Number(capture.candidates.original))}</span>` : ""}${capture.candidates.expires ? `<span>Expiry: ${esc(capture.candidates.expires)}</span>` : ""}<span>Remaining balance: not read — enter it yourself.</span></div>` : ""}
       <div class="capture-actions">
-        ${capture.status === "scan-result" ? `<button class="btn primary sm" type="button" data-act="capture-apply-scan">Use retailer suggestion</button><button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button>` : ""}
+        ${capture.status === "live-unavailable" ? `<button class="btn primary sm" type="button" data-act="capture-scan">Retry controlled scanner</button><button class="btn ghost sm" type="button" data-act="capture-scan-auto">Use automatic scanner</button><button class="btn ghost sm" type="button" data-act="manual-entry">Enter manually</button>` : ""}
+        ${capture.status === "scan-choice" ? (capture.options || []).map(o => `<button class="btn ghost sm" type="button" data-act="capture-choose" data-index="${o.index}">Code ending ${esc(o.maskedValue.slice(-4))}</button>`).join("") + `<button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button>` : ""}
+        ${capture.status === "scan-result" ? `<button class="btn primary sm" type="button" data-act="capture-apply-scan">${capture.brand ? "Confirm and use retailer" : "Confirm scan"}</button><button class="btn ghost sm" type="button" data-act="capture-scan">Scan again</button><button class="btn ghost sm" type="button" data-act="capture-clear">Not my card</button>` : ""}
         ${["no-result", "cancelled", "error", "permission-denied", "unsupported"].includes(capture.status) ? `<button class="btn ghost sm" type="button" data-act="capture-scan">Retry scan</button>` : ""}
         ${capture.status === "permission-denied" ? `<button class="btn ghost sm" type="button" data-act="capture-open-settings">Open Settings</button>` : ""}
         ${capture.status === "photo-ready" && capture.candidates && (capture.candidates.brand || capture.candidates.original || capture.candidates.expires) ? `<button class="btn primary sm" type="button" data-act="capture-apply-ocr">Apply suggestions</button>` : ""}
@@ -1428,6 +1527,7 @@ function vProfile(a) {
   <p class="group-label">More</p>
   <div class="list">
     <a class="kv" href="#/"><span class="ricon">${icon("home", 18)}</span><span class="k">walletswap home page</span>${icon("right", 18, 'class="chev"')}</a>
+    <button class="kv" type="button" data-act="tutorial-replay"><span class="ricon">${icon("help", 18)}</span><span class="k">Replay the guide</span>${icon("right", 18, 'class="chev"')}</button>
     <a class="kv" href="#/app/settings"><span class="ricon">${icon("lock", 18)}</span><span class="k">Settings</span>${icon("right", 18, 'class="chev"')}</a>
     ${a.demo ? kv("refresh", "Reset demo data", "", "reset") : supabaseConfigured ? `<button class="kv" data-act="sheet" data-s="import-local"><span class="ricon">${icon("refresh", 18)}</span><span class="k">Import local wallet</span>${icon("right", 18, 'class="chev"')}</button>` : ""}
   </div>
@@ -1477,7 +1577,27 @@ function vPublicDeletion() {
 }
 
 /* ================= auth ================= */
+function vVerify() {
+  const email = ui.authPendingEmail;
+  const wait = resendSecondsRemaining(ui.otpSentAt, Date.now());
+  return `<div class="auth"><div class="auth-in">
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a>    <a class="link auth-back" href="#/signup" aria-label="Back to sign up"><span aria-hidden="true">&larr;</span><span class="auth-back-txt"> Back</span></a></div>
+    <h1>Enter your code</h1>
+    <p class="lead">${email ? `If an account can be created for <b>${esc(email)}</b>, we sent a verification code there. Codes expire, so use the newest one.` : "Enter the email you signed up with and the code we sent."}</p>
+    ${ui.authErr ? `<div class="form-err" role="alert">${esc(ui.authErr)}</div>` : ""}
+    ${ui.authNotice ? `<div class="notice" role="status">${esc(ui.authNotice)}</div>` : ""}
+    <form data-form="verify" novalidate>
+      ${email ? "" : `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || "")}" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="you@example.com">${fieldErr("email")}</label>`}
+      <label class="field"><span>Verification code</span><input class="input code-input${bad("code")}" id="au-code" data-model="f.code" value="${esc(ui.f.code || "")}" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]*" enterkeyhint="done" placeholder="123456" aria-describedby="err-code">${fieldErr("code")}</label>
+      <button class="btn primary block" type="submit" style="margin-top:6px">Verify and continue</button>
+    </form>
+    <button class="btn ghost block" type="button" data-act="resend-code" data-resend="1" ${wait > 0 ? "disabled" : ""} style="margin-top:12px">${wait > 0 ? `Resend code in ${wait}s` : "Resend code"}</button>
+    <p class="alt"><a class="link" href="#/signup" data-act="change-email">Use a different email</a> &middot; <a class="link" href="#/login">Back to log in</a></p>
+  </div></div>`;
+}
+
 function vAuth(mode) {
+  if (mode === "verify") return vVerify();
   const reset = mode === "reset-password";
   const update = mode === "update-password";
   const login = mode === "login";
@@ -1486,16 +1606,16 @@ function vAuth(mode) {
   const pwType = ui.showPw ? "text" : "password";
   const title = login ? "Log in" : reset ? "Reset your password" : update ? "Choose a new password" : "Create your account";
   return `<div class="auth"><div class="auth-in">
-    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a><a class="link" href="#/">Back to home</a></div>
+    <div class="auth-top"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(30)}</a>    <a class="link auth-back" href="#/" aria-label="Back to home"><span aria-hidden="true">&larr;</span><span class="auth-back-txt"> Back to home</span></a></div>
     <h1>${title}</h1>
     <p class="lead">${login ? "Welcome back. Your cards are where you left them." : reset ? "We'll email you a secure password-reset link." : update ? "Choose a password you haven't used before." : "Keep every gift card balance in one place. It takes a minute."}</p>
     ${loopbackAuthOrigin && (login || mode === "signup" || reset) ? `<p class="hint" role="status">This local address only works on this computer. Confirmation and reset links sent from here will not open on your phone. To use email links on Android or iPhone, open WalletSwap in its installed app or on a real HTTPS website before requesting the email.</p>` : ""}
     ${ui.authErr ? `<div class="form-err" role="alert">${esc(ui.authErr)}</div>` : ""}
     ${ui.authNotice ? `<div class="notice" role="status">${esc(ui.authNotice)}</div>` : ""}
-    ${ui.authPendingEmail && supabaseConfigured && (login || mode === "signup") && (!ui.f.email || String(ui.f.email).trim().toLowerCase() === ui.authPendingEmail) ? `<button class="btn ghost block" type="button" data-act="resend-confirmation" style="margin-bottom:12px">Resend confirmation email</button>` : ""}
+    ${ui.authPendingEmail && supabaseConfigured && (login || mode === "signup") && (!ui.f.email || String(ui.f.email).trim().toLowerCase() === ui.authPendingEmail) ? `<a class="btn primary block" href="#/verify" style="margin-bottom:10px">Enter verification code</a><button class="btn ghost block" type="button" data-act="resend-code" style="margin-bottom:12px">Resend code</button>` : ""}
     <form data-form="${mode}" novalidate>
       ${!login && !reset && !update ? `<label class="field"><span>Full name</span><input class="input${bad("name")}" id="au-name" data-model="f.name" value="${esc(ui.f.name || "")}" autocomplete="name" placeholder="Alex Morgan">${fieldErr("name")}</label>` : ""}
-      ${!update ? `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || (login ? ui.authPendingEmail : ""))}" autocomplete="email" placeholder="you@example.com">${fieldErr("email")}</label>` : ""}
+      ${!update ? `<label class="field"><span>Email</span><input class="input${bad("email")}" id="au-email" type="email" data-model="f.email" value="${esc(ui.f.email || (login ? ui.authPendingEmail : ""))}" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="${reset ? "send" : "next"}" placeholder="you@example.com">${fieldErr("email")}</label>` : ""}
       ${!reset ? `<label class="field"><span>Password</span><div class="pw"><input class="input${bad("password")}" id="au-pw" type="${pwType}" data-model="f.password" value="${esc(ui.f.password || "")}" autocomplete="${login ? "current-password" : "new-password"}" placeholder="${login ? "Your password" : "At least 8 characters"}">
         <button type="button" data-act="show-pw" aria-label="${ui.showPw ? "Hide" : "Show"} password">${icon(ui.showPw ? "eyeoff" : "eye", 19)}</button></div>${fieldErr("password")}</label>` : ""}
       <button class="btn primary block" type="submit" style="margin-top:6px">${login ? "Log in" : reset ? "Send reset link" : update ? "Update password" : "Create account"}</button>
@@ -1533,6 +1653,8 @@ function vAuthCallback(callback, recovery = false) {
     <h1>${esc(content[0])}</h1>
     <p class="lead" role="${["processing", "confirmed"].includes(callback.status) ? "status" : "alert"}">${esc(content[1])}</p>
     ${callback.status === "confirmed" ? `<a class="btn primary block" href="${recovery ? "#/update-password" : "#/app/wallet"}">${recovery ? "Choose a new password" : "Continue to WalletSwap"}</a>` : ""}
+    ${callback.status === "confirmed" && !recovery && !Capacitor.isNativePlatform() ? `<p class="alt"><a class="link" href="walletswap://auth/callback">Open the WalletSwap app</a> (sign in there with the same email and password)</p>` : ""}
+    ${callback.status === "expired" || callback.status === "error" ? `<p class="alt">Need a new link? Log in with your email and password and choose "Resend confirmation email".</p>` : ""}
     <p class="alt"><a class="link" href="#/login">Return to login</a></p>
   </div></div>`;
 }
@@ -1549,14 +1671,14 @@ function vHome(a) {
   ];
   const cta = a ? `<a class="btn primary" href="#/app/wallet">Open my wallet</a>`
     : `<a class="btn primary" href="#/signup">Create a free account</a><button class="btn ghost" data-act="demo-login">Try the demo</button>`;
-  const tutorial = ui.tutorial.open ? renderTutorial() : "";
+  const tutorial = "";
   return `<div class="home">
   <header class="wrap nav"><a class="logo" href="#/" aria-label="walletswap home page">${LOGO(34)}</a>
     <nav class="nav-r"><button class="txt hide-sm" data-act="scroll" data-to="how">How it works</button>
       <button class="home-help" type="button" data-act="tutorial-open" aria-label="Open WalletSwap help tutorial">${icon("help", 19)}</button>
       ${a ? `<a class="btn primary sm" href="#/app/wallet">Open my wallet</a>` : `<a class="txt" href="#/login">Log in</a><a class="btn primary sm" href="#/signup">Get started</a>`}</nav></header>
   <section class="wrap hero">
-    <div>
+    <div class="hero-copy">
       <h1>Every gift card you own, in one wallet.</h1>
       <p>See what's left on each card, spend it before it's forgotten, and sell the ones you won't use. Or buy new cards for less than they're worth.</p>
       <div class="cta">${cta}</div>
@@ -1578,21 +1700,57 @@ function vHome(a) {
     <div class="list" aria-label="Example listings">${sample.map(l => listingRow(l, false)).join("")}</div>
   </div></section>
   <section class="wrap closing"><h2>Stop leaving money on gift cards.</h2><div class="cta" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${cta}</div></section>
-  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span>Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a></div></footer>
+  <footer class="footer"><div class="wrap"><div><span class="logo xs">${LOGO(22)}</span><p>${TAGLINE}</p></div><span class="footer-note">Card numbers and PINs are never shown to other people.</span><a class="link" href="#/account-deletion">Account deletion</a><a class="link" href="mailto:admin@walletswap.org">Customer support</a>${LINKEDIN_URL ? `<a class="link" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="WalletSwap on LinkedIn (opens in a new tab)">LinkedIn</a>` : ""}</div></footer>
   ${tutorial}</div>`;
 }
 function renderTutorial() {
-  const step = HELP_STEPS[ui.tutorial.step] || HELP_STEPS[0];
-  return `<div class="tour-backdrop" role="presentation" data-act="tutorial-backdrop">
-    <section class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
-      <div class="tour-head"><h2 id="tour-title">WalletSwap quick tour</h2><button class="icon-btn" type="button" data-act="tutorial-close" aria-label="Close tutorial">${icon("x", 18)}</button></div>
-      <p class="tour-progress">Step ${ui.tutorial.step + 1} of ${HELP_STEPS.length}</p>
-      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>
-      <div class="tour-actions"><button class="btn ghost sm" type="button" data-act="tutorial-back" ${ui.tutorial.step === 0 ? "disabled" : ""}>Back</button>
+  const t = ui.tutorial;
+  const step = HELP_STEPS[t.step] || HELP_STEPS[0];
+  const last = t.step === HELP_STEPS.length - 1;
+  const actions = `<div class="tour-actions"><button class="btn ghost sm" type="button" data-act="tutorial-back" ${t.step === 0 ? "disabled" : ""}>Back</button>
         <button class="btn ghost sm" type="button" data-act="tutorial-skip">Skip tour</button>
-        <button class="btn primary sm" type="button" data-act="tutorial-next">${ui.tutorial.step === HELP_STEPS.length - 1 ? "Finish" : "Next"}</button></div>
+        <button class="btn primary sm" type="button" data-act="tutorial-next" id="tour-next">${last ? "Finish" : "Next"}</button></div>`;
+  const show = t.mode === "onboarding" && step.route ? `<button class="btn ghost sm tour-show" type="button" data-act="tutorial-show" data-route="${esc(step.route)}">${esc(step.cta || "Show me")}</button>` : "";
+  if (t.mode === "onboarding") {
+    return `<section class="tour-coach" role="region" aria-label="WalletSwap first-use guide" aria-live="polite" tabindex="-1" id="tour-card">
+      <div class="tour-head"><p class="tour-progress">Step ${t.step + 1} of ${HELP_STEPS.length}</p><button class="icon-btn" type="button" data-act="tutorial-skip" aria-label="Skip guide">${icon("x", 18)}</button></div>
+      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>${show}
+      ${actions}</section>`;
+  }
+  return `<div class="tour-backdrop" role="presentation" data-act="tutorial-backdrop">
+    <section class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body" tabindex="-1" id="tour-card">
+      <div class="tour-head"><h2 id="tour-title">WalletSwap quick tour</h2><button class="icon-btn" type="button" data-act="tutorial-close" aria-label="Close tutorial">${icon("x", 18)}</button></div>
+      <p class="tour-progress">Step ${t.step + 1} of ${HELP_STEPS.length}</p>
+      <h3>${esc(step.title)}</h3><p id="tour-body">${esc(step.body)}</p>
+      ${actions}
     </section>
   </div>`;
+}
+let tourShown = null;
+function syncTourOverlay() {
+  let host = document.getElementById("tour-host");
+  if (!ui.tutorial.open) { if (host) host.remove(); tourShown = null; return; }
+  if (!host) { host = document.createElement("div"); host.id = "tour-host"; document.body.appendChild(host); }
+  const key = ui.tutorial.mode + ":" + ui.tutorial.step;
+  host.innerHTML = renderTutorial();
+  if (tourShown !== key) {
+    tourShown = key;
+    const target = ui.tutorial.mode === "onboarding" ? document.getElementById("tour-card") : document.getElementById("tour-next");
+    if (target && target.focus) target.focus({ preventScroll: true });
+  }
+}
+function startTour(mode, step = 0) { ui.tutorial = { open: true, step, mode }; render(); }
+function endTour() { ui.tutorial = { open: false, step: 0, mode: "help" }; render(); }
+function maybeStartOnboarding(r, a) {
+  if (!a || a.demo || !r || r.parts[0] !== "app" || ui.tutorial.open) return;
+  const id = String(a.id || a.email || "");
+  if (ui.onboardingChecked === id) return;
+  ui.onboardingChecked = id;
+  let storage = null;
+  try { storage = window.localStorage; } catch { storage = null; }
+  if (hasSeenOnboarding(storage, id)) return;
+  markOnboardingSeen(storage, id);
+  ui.tutorial = { open: true, step: 0, mode: "onboarding" };
 }
 /* ================= sheets ================= */
 function sheetWrap(title, body, lead) {
@@ -1634,16 +1792,18 @@ function sheetHtml(a) {
       const ok = price > 0;
       const pct = ok ? Math.round((1 - price / c.balance) * 100) : 0;
       const cloudMode = supabaseConfigured && !a.demo;
+      const feeRate = (cloudMode && Number.isFinite(d.feePercent) ? d.feePercent : FEE * 100) / 100;
+      const feeLabel = r2(feeRate * 100);
       return sheetWrap(s.type === "sell" ? `Sell ${esc(brandName(c))} card` : "Change asking price", `<form data-form="${s.type}" novalidate>
         ${fin("sl-price", "price", "Asking price", { money: true, num: true, attrs: 'data-fmt="money" data-live="1" inputmode="decimal"' })}
         <div class="sum">
           <div><span>Buyer saves</span><b class="num">${ok && pct > 0 ? pct + "%" : "–"}</b></div>
-          <div><span>walletswap fee (5%)</span><span class="num">${ok ? money(price * FEE) : "–"}</span></div>
-          <div><span>You'll receive</span><b class="num pos">${ok ? money(price * (1 - FEE)) : "–"}</b></div>
+          <div><span>walletswap fee (${feeLabel}%)</span><span class="num">${ok ? money(price * feeRate) : "–"}</span></div>
+          <div><span>You'll receive</span><b class="num pos">${ok ? money(price * (1 - feeRate)) : "–"}</b></div>
         </div>
         <button class="btn primary block" type="submit">${cloudMode ? (s.type === "sell" ? "Create listing" : "Save price") : (s.type === "sell" ? "List on marketplace" : "Save price")}</button>
         <p class="hint" style="text-align:center;margin-top:10px">${cloudMode ? "Listings are previews only. No payment, gift-card transfer, or payout is processed." : `Your card number is only released to the buyer after payment. Payouts go to ${esc(d.payout.method ? d.payout.method.label : "your payout method")}.`}</p></form>`,
-        `Balance ${money(c.balance)}. ${cloudMode ? "Balances are user-reported; listings do not complete a sale." : "Cards like this usually sell at 8–15% off."}`);
+        `Balance ${money(c.balance)}. ${cloudMode ? `${c.balanceVerification === "verified" ? "Balance was confirmed by an authorized provider." : "Balance is user-reported and not verified."} Buyers never see your card number or PIN. Listings do not complete a sale.` : "Cards like this usually sell at 8–15% off."}`);
     }
     case "unlist": return confirmSheet("Take this card off the marketplace?", `Your ${esc(brandName(c))} card goes back to your wallet and you can spend it again.`, "Unlist card", "unlist");
     case "remove": return confirmSheet("Remove this card?", `The ${esc(brandName(c))} card${c.balance > 0 ? ` with ${money(c.balance)} left` : ""} will be deleted from your wallet${c.status === "listed" ? " and the marketplace" : ""}. This can't be undone.`, "Remove card", "remove", true);
@@ -1755,9 +1915,9 @@ function resetUi() {
   Object.assign(ui, {
     sheet: null, q: "", bf: "all", sort: "discount", af: "all", cf: "active",
     add: blankAdd(), f: {}, errs: {}, reveal: {}, authErr: "", authNotice: "",
-    authPendingEmail: "", showPw: false,
+    authPendingEmail: "", showPw: false, otpSentAt: 0, onboardingChecked: "",
     retailers: { userId: "", loading: false, available: false, pinned: [], error: "", search: "" },
-    tutorial: { open: false, step: 0 }, deletion: { acknowledged: false, confirmed: false, email: "" },
+    tutorial: { open: false, step: 0, mode: "help" }, deletion: { acknowledged: false, confirmed: false, email: "" },
     ruby: { userId: "", loadedFor: "", conversations: [], conversationId: "", messages: [], loading: false, busy: false, draft: "", error: "", retryMessage: "", mode: "unknown", followLatest: true },
   });
 }
@@ -1825,16 +1985,18 @@ const ACTIONS = {
   "ruby-quick": ds => { void sendRubyTurn(ds.v); },
   "ruby-retry": () => { void sendRubyTurn(ui.ruby.retryMessage); },
   "ruby-reload": () => { void reloadRubyHistory(); },
-  "tutorial-open": () => { ui.tutorial = { open: true, step: 0 }; render(); },
-  "tutorial-close": () => { ui.tutorial.open = false; render(); },
-  "tutorial-skip": () => { ui.tutorial.open = false; render(); },
+  "tutorial-open": () => { ui.tutorial = { open: true, step: 0, mode: "help" }; render(); },
+  "tutorial-close": () => endTour(),
+  "tutorial-skip": () => endTour(),
   "tutorial-back": () => { ui.tutorial.step = Math.max(0, ui.tutorial.step - 1); render(); },
   "tutorial-next": () => {
-    if (ui.tutorial.step >= HELP_STEPS.length - 1) ui.tutorial.open = false;
-    else ui.tutorial.step += 1;
+    if (ui.tutorial.step >= HELP_STEPS.length - 1) return endTour();
+    ui.tutorial.step += 1;
     render();
   },
-  "tutorial-backdrop": (ds, el, e) => { if (e.target === el) { ui.tutorial.open = false; render(); } },
+  "tutorial-show": ds => { if (ds.route) go(ds.route); },
+  "tutorial-replay": () => { go("/app/wallet"); startTour("onboarding"); },
+  "tutorial-backdrop": (ds, el, e) => { if (e.target === el) endTour(); },
   "deletion-continue": () => { if (ui.deletion.acknowledged) { ui.deletion.confirmed = true; render(); } },
   "public-deletion-request": () => {
     try { window.location.href = buildDeletionRequestUrl(ui.deletion.email); }
@@ -2043,7 +2205,12 @@ const ACTIONS = {
       toast(`${result.importedCount} of ${result.sourceCount} local card records imported. Credentials were not transferred.`);
     }
   },
-  "capture-scan": () => { void cardCapture.scan(); },
+  "capture-scan": () => { void cardCapture.scanLive(); },
+  "capture-scan-auto": () => { void cardCapture.scan(); },
+  "capture-live-take": () => { void cardCapture.captureLive(); },
+  "capture-live-cancel": () => { void cardCapture.cancelLive(); },
+  "capture-choose": d => { cardCapture.chooseBarcode(d.index); },
+  "capture-clear": () => { cardCapture.clearScan(); ui.add.captureMethod = ""; ui.add.captureConfirmed = false; },
   "capture-photo": () => { void cardCapture.takePhoto(); },
   "capture-open-settings": () => {
     if (Capacitor.isNativePlatform()) {
@@ -2081,16 +2248,21 @@ const ACTIONS = {
     if (a) signIn(a, `Welcome, ${firstName(a.name)}. This is the demo wallet.`);
   },
   "show-pw": () => { ui.showPw = !ui.showPw; render(); const el = $("#au-pw"); if (el) el.focus(); },
-  "resend-confirmation": async () => {
-    const email = ui.authPendingEmail;
-    if (!email || !supabaseConfigured) return;
+  "resend-code": async () => {
+    const email = String(ui.authPendingEmail || ui.f.email || "").trim().toLowerCase();
+    if (!supabaseConfigured) return;
+    if (!validEmail(email)) { ui.authErr = "Enter a valid email address first."; render(); return; }
+    if (resendSecondsRemaining(ui.otpSentAt, Date.now()) > 0) return;
+    ui.authPendingEmail = email;
     const { error } = await resendSignupConfirmation(email);
     ui.authErr = "";
+    if (!error) ui.otpSentAt = Date.now();
     ui.authNotice = error
       ? authDeliveryError(error)
-      : "If this account needs confirmation, the request was accepted. Check your inbox and spam folder; delivery may be delayed.";
-    render();
+      : "If this account needs verification, a new code was requested. Check your inbox and spam folder; delivery may be delayed, and only the newest code works.";
+    if (parseRoute().parts[0] === "verify") render(); else go("/verify");
   },
+  "change-email": () => { ui.authPendingEmail = ""; ui.otpSentAt = 0; ui.f = {}; ui.authErr = ""; ui.authNotice = ""; go("/signup"); },
   scroll: ds => { const el = document.getElementById(ds.to); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
 };
 
@@ -2139,27 +2311,27 @@ async function openRubyConversation(conversationId) {
     chat.loading = false;
     render();
   }
-  async function removeRubyConversation(conversationId) {
-    const chat = ui.ruby;
-    if (chat.busy || chat.loading) return;
-    if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
-    chat.loading = true;
-    chat.error = "";
-    render();
-    try {
-      await deleteRubyConversation(conversationId);
-      chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
-      if (chat.conversationId === conversationId) {
-        chat.conversationId = chat.conversations[0]?.id || "";
-        chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
-      }
-      chat.mode = "unknown";
-    } catch (error) {
-      chat.error = rubyErrorMessage(error);
-    } finally {
-      chat.loading = false;
-      render();
+}
+async function removeRubyConversation(conversationId) {
+  const chat = ui.ruby;
+  if (chat.busy || chat.loading) return;
+  if (!window.confirm("Delete this Ruby conversation and its saved messages?")) return;
+  chat.loading = true;
+  chat.error = "";
+  render();
+  try {
+    await deleteRubyConversation(conversationId);
+    chat.conversations = chat.conversations.filter(item => item.id !== conversationId);
+    if (chat.conversationId === conversationId) {
+      chat.conversationId = chat.conversations[0]?.id || "";
+      chat.messages = chat.conversationId ? await getRubyMessages(chat.conversationId) : [];
     }
+    chat.mode = "unknown";
+  } catch (error) {
+    chat.error = rubyErrorMessage(error);
+  } finally {
+    chat.loading = false;
+    render();
   }
 }
 async function reloadRubyHistory() {
@@ -2222,6 +2394,27 @@ async function sendRubyTurn(value) {
   }
 }
 const FORMS = {
+  async verify() {
+    const f = ui.f, e = {};
+    const email = String(ui.authPendingEmail || f.email || "").trim().toLowerCase();
+    const code = normalizeOtpCode(f.code);
+    if (!validEmail(email)) e.email = "Enter a valid email address.";
+    const codeError = validateOtpCode(code);
+    if (codeError) e.code = codeError;
+    ui.authErr = ""; ui.authNotice = "";
+    if (Object.keys(e).length) return fail(e);
+    if (!supabaseConfigured) { ui.authErr = supabaseConfigError || "Cloud authentication is not configured."; render(); return; }
+    const { data, error } = await verifySignupCode({ email, token: code });
+    if (error) {
+      ui.errs = {};
+      ui.authErr = classifyOtpError(error).message;
+      render(); return;
+    }
+    if (!data?.user) { ui.authErr = "Verification finished without an account session. Log in to continue."; render(); return; }
+    ui.authPendingEmail = ""; ui.otpSentAt = 0; ui.f = {};
+    await activateRemoteUser(data.user);
+    toast("Email verified. Your wallet is ready.");
+  },
   async login() {
     const f = ui.f, e = {};
     const email = String(f.email || "").trim().toLowerCase();
@@ -2235,8 +2428,8 @@ const FORMS = {
         ui.errs = {};
         ui.authPendingEmail = email;
         ui.authErr = error.code === "email_not_confirmed"
-          ? "Your account needs email confirmation before you can log in. Open the latest WalletSwap confirmation email, or resend it below."
-          : "That email and password could not be verified. Check them and try again. If you recently signed up, confirm your email or resend the link below.";
+          ? "Your account needs email verification before you can log in. Enter the code from your latest WalletSwap email, or request a new one."
+          : "That email and password could not be verified. Check them and try again. If you recently signed up, you can enter or resend your verification code below.";
         ui.authNotice = "";
         render(); return;
       }
@@ -2270,12 +2463,13 @@ const FORMS = {
     if (error) {
       ui.authErr = error.code === "email_address_not_authorized" || error.code === "over_email_send_rate_limit" || error.status === 429
         ? authDeliveryError(error)
-        : "WalletSwap couldn't complete sign-up. Check the details or try again. If you already started, confirm your email or resend the link below.";
+        : "WalletSwap couldn't complete sign-up. Check the details or try again. If you already started, enter or resend your verification code below.";
       render(); return;
     }
     if (!data.session || !data.user) {
-      ui.authNotice = "Email confirmation is required before sign-in. Open the latest WalletSwap confirmation email (check spam), then log in. If it doesn't arrive, resend it below.";
-      ui.f = { email }; render(); return;
+      ui.otpSentAt = Date.now();
+      ui.authNotice = "";
+      ui.f = {}; go("/verify"); return;
     }
     await activateRemoteUser(data.user);
     toast("Your wallet is ready. Add your first card.");
@@ -2558,9 +2752,16 @@ document.addEventListener("submit", async e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (ui.tutorial.open) { ui.tutorial.open = false; render(); }
+  if (ui.tutorial.open) endTour();
   else if (ui.sheet) closeSheet();
 });
+setInterval(() => {
+  const btn = document.querySelector("[data-resend]");
+  if (!btn) return;
+  const wait = resendSecondsRemaining(ui.otpSentAt, Date.now());
+  btn.disabled = wait > 0;
+  btn.textContent = wait > 0 ? `Resend code in ${wait}s` : "Resend code";
+}, 1000);
 document.addEventListener("scroll", e => {
   if (e.target?.id === "screen" && parseRoute().parts[1] === "ruby") {
     ui.ruby.followLatest = isNearScrollEnd(e.target);
@@ -2574,7 +2775,7 @@ if (window.visualViewport) window.visualViewport.addEventListener("resize", () =
 window.addEventListener("hashchange", () => {
   ui.sheet = null; ui.errs = {}; ui.authErr = ""; ui.authNotice = "";
   const r = parseRoute();
-  if (r.path !== "/") ui.tutorial.open = false;
+  if (r.path !== "/" && ui.tutorial.mode !== "onboarding") ui.tutorial.open = false;
   if (r.path === "/app/ruby" && ui.lastPath !== "/app/ruby") ui.ruby.followLatest = true;
   if (!r.path.startsWith("/app/settings/account/delete")) ui.deletion = { confirmed: false, acknowledged: false, email: "" };
   if (r.path !== AUTH_CALLBACK_PATH && r.path !== AUTH_RECOVERY_CALLBACK_PATH) ui.authCallback = { status: "idle" };
@@ -2589,6 +2790,12 @@ window.addEventListener("hashchange", () => {
   render();
   window.scrollTo(0, 0);
 });
+
+/* Release the camera whenever the live scanner loses the foreground or the user navigates away. */
+const stopLiveScan = () => { if (ui.capture?.status === "live-scanning") void cardCapture.cancelLive(); };
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopLiveScan(); });
+window.addEventListener("pagehide", stopLiveScan);
+window.addEventListener("hashchange", stopLiveScan);
 
 function applyTheme() {
   const t = S && S.theme;

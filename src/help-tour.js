@@ -1,10 +1,12 @@
 export const HELP_STEPS = [
   {
     title: "Add a gift card",
+    route: "/app/add", cta: "Open Add Card",
     body: "Open Add Card, choose a retailer or enter one manually, then enter the printed value and the remaining balance reported by the retailer.",
   },
   {
     title: "Scan a physical card",
+    route: "/app/add", cta: "Open Add Card",
     body: "Use barcode/QR scanning or take a photo on supported devices. Suggestions stay on-device, must be reviewed, and never replace the remaining balance you enter.",
   },
   {
@@ -13,10 +15,12 @@ export const HELP_STEPS = [
   },
   {
     title: "Ask Ruby",
+    route: "/app/ruby", cta: "Open Ruby",
     body: "Ruby can answer questions using your signed-in WalletSwap data. Ruby cannot verify a retailer balance or observe purchases outside WalletSwap.",
   },
   {
     title: "Browse the marketplace",
+    route: "/app/market", cta: "Open Marketplace",
     body: "Listings show reported card details and asking prices. Current WalletSwap marketplace activity is a simulation; it does not collect payment or transfer a card.",
   },
   {
@@ -25,6 +29,7 @@ export const HELP_STEPS = [
   },
   {
     title: "Manage notifications",
+    route: "/app/profile", cta: "Open Profile",
     body: "Choose alert preferences in Profile. Device notifications depend on your permission and platform; in-app notifications remain available where recorded.",
   },
   {

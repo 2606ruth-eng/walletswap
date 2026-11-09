@@ -7,6 +7,21 @@ function isLoopback(hostname) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
 
+function hostedCallback(configuredUrl, purpose) {
+  const configured = String(configuredUrl || "").trim();
+  if (!configured) return "";
+  try {
+    const target = new URL(configured);
+    if (target.protocol !== "https:" || target.username || target.password || isLoopback(target.hostname)) return "";
+    target.pathname = purpose === "recovery" ? AUTH_RECOVERY_CALLBACK_PATH : AUTH_CALLBACK_PATH;
+    target.search = "";
+    target.hash = "";
+    return target.toString();
+  } catch {
+    return "";
+  }
+}
+
 export function resolveAuthRedirectUrl({
   isNative = false,
   isDevelopment = false,
@@ -15,6 +30,11 @@ export function resolveAuthRedirectUrl({
   purpose = "confirmation",
 } = {}) {
   if (isNative) {
+    // Custom-scheme links are often not clickable in mail clients and cannot be
+    // completed on a laptop. A configured HTTPS callback is used when available; the
+    // hosted page confirms the email and offers an "Open in app" link.
+    const hosted = hostedCallback(configuredUrl, purpose);
+    if (hosted) return hosted;
     return purpose === "recovery" ? NATIVE_AUTH_RECOVERY_REDIRECT_URL : NATIVE_AUTH_REDIRECT_URL;
   }
 

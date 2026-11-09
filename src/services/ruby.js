@@ -21,12 +21,17 @@ export async function listRubyConversations() {
 
 export async function createRubyConversation(title = "WalletSwap assistant") {
   const client = requireSupabase();
-  const { data: authData, error: authError } = await client.auth.getUser();
-  if (authError) throw authError;
-  if (!authData.user) throw new Error("Sign in before starting a Ruby conversation.");
+  // Local session read avoids a network round-trip; RLS still enforces ownership server-side.
+  let userId = (await client.auth.getSession?.())?.data?.session?.user?.id;
+  if (!userId) {
+    const { data: authData, error: authError } = await client.auth.getUser();
+    if (authError) throw authError;
+    userId = authData.user?.id;
+  }
+  if (!userId) throw new Error("Sign in before starting a Ruby conversation.");
   const safeTitle = String(title || "").trim().slice(0, 120) || "WalletSwap assistant";
   const { data, error } = await client.from("ruby_conversations")
-    .insert({ user_id: authData.user.id, title: safeTitle })
+    .insert({ user_id: userId, title: safeTitle })
     .select("id,title,created_at,updated_at").single();
   if (error) throw error;
   return data;

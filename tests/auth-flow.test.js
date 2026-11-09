@@ -9,19 +9,19 @@ const [authSource, appSource] = await Promise.all([
 
 test("signup confirmation can be safely resent to the attempted address", () => {
   assert.match(authSource, /auth\.resend\(\{[\s\S]*?type:\s*"signup"[\s\S]*?email:\s*email\.trim\(\)\.toLowerCase\(\)[\s\S]*?emailRedirectTo:\s*authRedirectUrl\(\)/);
-  assert.match(appSource, /data-act="resend-confirmation"/);
-  assert.match(appSource, /If this account needs confirmation, the request was accepted/);
+  assert.match(appSource, /data-act="resend-code"/);
+  assert.match(appSource, /If this account needs verification, a new code was requested/);
 });
 
-test("signup with required email confirmation keeps the email and explains the next step", () => {
+test("signup that requires verification opens the code-entry screen", () => {
   assert.match(appSource, /!data\.session \|\| !data\.user/);
-  assert.match(appSource, /Email confirmation is required before sign-in/);
-  assert.match(appSource, /ui\.f = \{ email \}/);
+  assert.match(appSource, /go\("\/verify"\)/);
+  assert.match(appSource, /If an account can be created for/);
 });
 
 test("login distinguishes unconfirmed accounts without exposing account existence", () => {
   assert.match(appSource, /error\.code === "email_not_confirmed"/);
-  assert.match(appSource, /Your account needs email confirmation before you can log in/);
+  assert.match(appSource, /Your account needs email verification before you can log in/);
   assert.match(appSource, /That email and password could not be verified/);
 });
 
